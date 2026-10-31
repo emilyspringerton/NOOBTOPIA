@@ -26,7 +26,9 @@ lua tests/ambient_test.lua
 
 In Roblox: put `src/noobtopia.lua` in `ServerScriptService`, `src/ambient.lua`, `src/big_o_witness.lua` and
 `src/generated/*.lua` beside it as ModuleScripts, `data/noob_lines.lua` too, and a rig named `Noob` in
-`ReplicatedStorage`. Then click a noob.
+`ReplicatedStorage`. Add a **RemoteEvent named `Punch`** in `ReplicatedStorage` and fire it from a LocalScript on
+click (that three-line client script is the ONE piece this repo does not ship — a server Script cannot see a click).
+The host warns in the output if the RemoteEvent is missing, so the gap announces itself instead of failing quietly.
 
 ## What it does
 

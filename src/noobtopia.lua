@@ -212,4 +212,27 @@ Players.PlayerAdded:Connect(function(player)
     player:SetAttribute("Weapon", WEAPON_FIST)
 end)
 
-workspace.Clicked:Connect(function() end) -- placeholder: a real place hooks a Tool's Activated event instead
+-- Combat input. A server Script cannot see a click, so the action arrives as a RemoteEvent named "Punch" in
+-- ReplicatedStorage, fired by a LocalScript (see README: one small client script is the piece this repo does not
+-- ship). Everything the decision needs is here: the rules pick the weapon's damage/knockback/cooldown and the
+-- to-hit chance, and only the nearest noob within arm's reach is a candidate.
+local PUNCH_REACH = 8
+local punchEvent = ReplicatedStorage:FindFirstChild("Punch")
+if punchEvent and punchEvent:IsA("RemoteEvent") then
+    punchEvent.OnServerEvent:Connect(function(player, weapon)
+        if type(weapon) ~= "number" then weapon = WEAPON_FIST end
+        local character = player.Character
+        local hrp = character and character:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+        local best, bestDist = nil, PUNCH_REACH
+        for _, noob in ipairs(noobs) do
+            if not noob.dead and noob.model.PrimaryPart then
+                local d = (noob.model.PrimaryPart.Position - hrp.Position).Magnitude
+                if d < bestDist then best, bestDist = noob, d end
+            end
+        end
+        if best then punch(hrp, best, weapon) end
+    end)
+else
+    warn("NOOBTOPIA: no 'Punch' RemoteEvent in ReplicatedStorage -- noobs spawn and talk, but cannot be hit yet")
+end
