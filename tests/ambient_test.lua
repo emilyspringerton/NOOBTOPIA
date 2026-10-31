@@ -94,6 +94,15 @@ check(Witness.helpsCoverUp(one) == true, "an asset helps cover it up")
 check(Witness.compromise(one[1]) == false, "compromise is not repeatable")
 check(Witness.resolve(five) == Witness.SILENCING, "a crowd past the threshold cannot be bought back")
 
+-- 10. the seed mixer is the C host's own, digit for digit -- every value below is also asserted by SHANKPIT's
+-- ambient_life_test.c (make test-ambient-life). MINSTD, not the 1103515245 generator this repo used to carry: that
+-- one loses its low bits in a 53-bit double, and the near-2^31 row is the seed that proved it.
+check(Ambient.nextSeed(0) == 0, "mixer(0)")
+check(Ambient.nextSeed(42) == 2027382, "mixer(42)")
+check(Ambient.nextSeed(999999) == 1026311495, "mixer(999999)")
+check(Ambient.nextSeed(2147483646) == 2147435376, "mixer near 2^31 -- the seed that used to diverge")
+check(Ambient.nextSeed(-1) == 0, "negative seed clamps to 0")
+
 if fails > 0 then
     print("ambient_test: " .. fails .. " FAILED")
     os.exit(1)

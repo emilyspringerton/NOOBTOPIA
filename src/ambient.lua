@@ -25,8 +25,14 @@ Ambient.shouldSpeak = Rules.ambientShouldSpeak
 
 -- The same deterministic mixer SHANKPIT uses (packages/simulation/ambient_life.h), so a seed means the same thing
 -- in both worlds. NOT math.random: a test has to be able to pin the exact line a seed produces.
+--
+-- MINSTD, and it matters: the 1103515245 generator this used to carry needs ~61 bits for a seed near 2^31, and a
+-- Luau number is an IEEE double (exact only to 2^53), so the low bits were rounded away and Roblox and the C host
+-- drifted apart from the same seed (2147483646 gave 2087949312 here against the C's 2087949151). `seed * 48271`
+-- peaks near 1.0e14 and is exact in both. plain `lua` 5.4 has 64-bit integers, so only Roblox would have hit it.
 function Ambient.nextSeed(seed)
-    return (seed * 1103515245 + 12345) % 2147483648
+    if seed < 0 then seed = 0 end
+    return (seed * 48271) % 2147483647
 end
 
 -- Lines grouped by category. `data` is data/noob_lines.lua (a list of {cat = N, text = "..."}).
