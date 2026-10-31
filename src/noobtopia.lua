@@ -28,10 +28,17 @@ local RunService = game:GetService("RunService")
 local Ambient = require(script.Parent.ambient)
 local Witness = require(script.Parent.big_o_witness)
 local Arena = require(script.Parent.generated.arena_rules)
+local Wander = require(script.Parent.wander)
 local LINES = require(script.Parent.data.noob_lines)
 
 -- Surface ids, matching PARENA/stdlib/noobtopia/arena_rules.prn:
 local CONCRETE, ICE, GRASS, METAL, MUD = 0, 1, 2, 3, 4
+
+-- The wander rule speaks in whole world units (PARENA/stdlib/noobtopia/walk_rules.prn); this host picks up the
+-- conversion to studs, and how big a piece of ground one noob is allowed to call its own.
+local STUD_PER_UNIT = 4
+local WALK_LEASH = 40          -- world units, i.e. 160 studs of street per noob
+local WALK_WISH = 6            -- the speed a noob asks arena.stepSpeed for while it is mid-leg
 
 local MAX_NOOBS = 12
 local TALK_RADIUS = 60
@@ -96,6 +103,10 @@ local function spawnNoob()
         cooldown = 0,
         dead = false,
     }
+    -- where it drifts, decided by the SAME rule SHANKPIT's C host runs, in whole world units
+    local p = model.PrimaryPart and model.PrimaryPart.Position or Vector3.new(0, 3, 0)
+    noob.walk = Wander.new(math.floor(p.X / STUD_PER_UNIT), math.floor(p.Z / STUD_PER_UNIT),
+        noob.mood, noob.seed, WALK_LEASH)
     table.insert(noobs, noob)
     return noob
 end
@@ -149,25 +160,26 @@ local function tickNoob(noob, dt)
 
     if noob.cooldown > 0 then noob.cooldown -= dt end
 
-    -- 1. decide a wish: wander, and now and then stand still (which is when the surface takes over and you slide)
-    if math.random() < 0.02 then
-        noob.wish = math.random(-12, 12)
-    end
+    -- 1. WHERE it drifts is the shared walk rule (PARENA walk_rules.prn -> src/generated/walk_rules.lua),
+    --    the same decision SHANKPIT's C host runs every tick: when to pick a target, which of the 8 compass
+    --    headings, how long the leg is, and whether the destination stays inside its own leash. This replaced a
+    --    `math.random() < 0.02` nudge on one axis, which could not be shared with anything.
+    local stepped = Wander.tick(noob.walk)
 
-    -- 2. ask the shared rules for the next speed. No input is -1, the rules' own "slide" convention.
+    -- 2. HOW FAST is the arena rules' slippery half: no input is -1, the rules' own "slide" convention, which is
+    --    when the surface takes over and a noob on ice keeps going after it has stopped asking.
     local surface = surfaceAt(root.Position.X, root.Position.Z)
-    local wish = noob.wish
-    if math.abs(wish) < 1 then wish = -1 end
-    noob.speed = Arena.stepSpeed(noob.speed, wish, surface)
+    noob.wish = stepped and WALK_WISH or -1
+    noob.speed = Arena.stepSpeed(noob.speed, noob.wish, surface)
 
-    -- 3. move. Speed is a magnitude; direction is the wish's sign (flip when the wish flips).
-    if noob.speed > 0 and wish ~= -1 then
-        local dir = (wish < 0) and -1 or 1
-        root.CFrame = root.CFrame + Vector3.new(dir * noob.speed * dt, 0, 0)
-        if dir < 0 then
-            root.CFrame = CFrame.lookAt(root.Position, root.Position + Vector3.new(-1, 0, 0))
-        else
-            root.CFrame = CFrame.lookAt(root.Position, root.Position + Vector3.new(1, 0, 0))
+    -- 3. move. Magnitude from arena rules, direction from the walk rule's heading. Driven by `stepped`, not by
+    --    "is mid-leg", so a STARTLED noob stays put on screen as well as in the rules.
+    if stepped and noob.speed > 0 then
+        local step = noob.speed * dt * STUD_PER_UNIT
+        local hx, hz = noob.walk.dx, noob.walk.dy
+        root.CFrame = root.CFrame + Vector3.new(hx * step, 0, hz * step)
+        if hx ~= 0 or hz ~= 0 then
+            root.CFrame = CFrame.lookAt(root.Position, root.Position + Vector3.new(hx, 0, hz))
         end
     end
     -- falling off the edge of the ice rink: put it back rather than let it disappear

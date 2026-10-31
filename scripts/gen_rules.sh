@@ -5,6 +5,8 @@
 #
 #   PARENA/stdlib/noobtopia/ambient_life.prn --> src/generated/ambient_life.lua  (Roblox talks)
 #                                             --> SHANKPIT/packages/simulation/ambient_life.c
+#   PARENA/stdlib/noobtopia/walk_rules.prn   --> src/generated/walk_rules.lua    (where it drifts, and when)
+#                                             --> SHANKPIT/packages/simulation/walk_rules.c
 #   PARENA/stdlib/noobtopia/arena_rules.prn  --> src/generated/arena_rules.lua   (combat + slippery physics)
 #                                             --> SHANKPIT/packages/simulation/arena_rules.c
 #
@@ -27,5 +29,6 @@ fi
 
 mkdir -p "$root/src/generated"
 "$parena_bin" build "$parena_dir/stdlib/noobtopia/ambient_life.prn" -o "$root/src/generated/ambient_life.lua"
+"$parena_bin" build "$parena_dir/stdlib/noobtopia/walk_rules.prn"   -o "$root/src/generated/walk_rules.lua"
 "$parena_bin" build "$parena_dir/stdlib/noobtopia/arena_rules.prn"  -o "$root/src/generated/arena_rules.lua"
-echo "regenerated src/generated/{ambient_life,arena_rules}.lua"
+echo "regenerated src/generated/{ambient_life,walk_rules,arena_rules}.lua"

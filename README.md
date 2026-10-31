@@ -22,6 +22,7 @@ scripts/gen_rules.sh
 
 # tests (plain Lua, no Roblox needed)
 lua tests/ambient_test.lua
+lua tests/walk_test.lua
 ```
 
 In Roblox: put `src/noobtopia.lua` in `ServerScriptService`, `src/ambient.lua`, `src/big_o_witness.lua` and
@@ -35,6 +36,10 @@ The host warns in the output if the RemoteEvent is missing, so the gap announces
 - **Ambient talking** — the original script's 20 lines, now categorised (greeting / question / banter / complaint /
   self) and scheduled by PARENA (`ambient_life.prn`): moods pick the category, the surface of the rules decides the
   cooldown, so a crowd does not chant in unison.
+- **Wandering** — where a noob drifts, and when, is `walk_rules.prn`: a shared idle timer per mood, one of 8 compass
+  headings, a leg length, and a leash it may not leave. A startled noob is *frozen* (0 permille, a state rather than a
+  slow speed), a curious one pauses least and roams furthest. The C host in SHANKPIT integrates with the identical
+  integer rule, and both sides assert the same `walk_parity.txt` vectors.
 - **Slippery physics** — movement is a speed integrated by `arena_rules.prn`'s own `stepSpeed`/`slideDecay`, per
   surface. Ice keeps you moving and barely lets you accelerate; concrete starts and stops hard. The same numbers
   drive SHANKPIT's own C build, so this is the game's physics, not Roblox's.
@@ -50,10 +55,12 @@ The host warns in the output if the RemoteEvent is missing, so the gap announces
 |---|---|
 | `src/noobtopia.lua` | the Roblox host — the only file that touches `workspace` |
 | `src/ambient.lua` | data-facing helpers (grouping, speak); decisions delegated to PARENA |
+| `src/wander.lua` | where a noob drifts, and when; same integer integration SHANKPIT's C host runs |
 | `src/big_o_witness.lua` | BIG_O's witness/decorum rule, pure |
 | `src/generated/*.lua` | **generated** from PARENA — never edit by hand |
 | `data/noob_lines.lua` | the words. **Source of truth** for every line, in both worlds |
 | `tests/ambient_test.lua` | plain-Lua test of the rules, the data and the witness rule |
+| `tests/walk_test.lua` | plain-Lua test of the walk rule against the shared `walk_parity.txt` vectors |
 | `noobtopia.lua`, `_.js`, `package.json` | the original single-file script and its JS stub, kept for the record |
 
 ## Regenerating
@@ -61,11 +68,15 @@ The host warns in the output if the RemoteEvent is missing, so the gap announces
 - **Words** — edit `data/noob_lines.lua`, then in SHANKPIT run `scripts/gen_ambient_lines.sh`; C picks the lines up
   from there. No second copy exists.
 - **Rules** — edit `PARENA/stdlib/noobtopia/*.prn`, then `scripts/gen_rules.sh` here *and*
-  `SHANKPIT/scripts/gen_noobtopia_rules.sh` (for the C).
+  `SHANKPIT/scripts/gen_noobtopia_rules.sh` (for the C). If the edit changes a walk threshold, update
+  `PARENA/stdlib/noobtopia/walk_parity.txt` too — both test suites assert it.
 
 ## Honest status
 
-The Roblox side is **written and reviewed, not executed**: no Lua interpreter or Studio exists on the build machine
-that produced it. The rules it calls are executed — SHANKPIT tests the C emitted from the same `.prn`
-(`make test-ambient-life`, `make test-noobtopia-arena`) — so the numbers are proven and the host is not. Getting it
-into a live place is a separate, later step.
+The Luau modules are **executed** — `lua tests/ambient_test.lua` and `lua tests/walk_test.lua` run clean on Lua 5.4,
+and the walk half is pinned against parity vectors the C asserts too. That is plain Lua, not Luau: 5.4 has 64-bit
+integers where Roblox has doubles, which is how the seed-mixer bug in `ambient.lua` was found (see
+`../docs/THREE_WAY_MERGE.md` §3b) and why `wander.lua` uses an exactly-representable mixer.
+
+Still unverified: **Roblox itself** — no Studio, no place file, no publishing, and `src/noobtopia.lua` (the host that
+touches `workspace`) has never run inside a place.
