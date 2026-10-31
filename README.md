@@ -1,85 +1,69 @@
-Two coroutines are started to control the NPC's behavior. The first coroutine generates a random message from a list of messages and creates a chat bubble above the NPC's head with the message. The chat bubble is destroyed after 7 seconds. The second coroutine generates a random direction and moves the NPC towards a new position every 33 seconds.
+# NOOBTOPIA
 
-Another coroutine is started to check if any NPCs have been destroyed. If an NPC's health is zero, it is destroyed.
+Autonomous noob life for Roblox — and the data half of a three-way merge.
 
-Add Noob NPC to world from library
-add this script to the workspace
-click the plus button next to workspace and select script
-paste below in and click run
+Three repos, one world (see [`../docs/THREE_WAY_MERGE.md`](../docs/THREE_WAY_MERGE.md)):
 
+| Repo | Role |
+|---|---|
+| **BIG_O** | the IP: witnessing, decorum, the campaign |
+| **SHANKPIT** | the agile implementation: the engine those systems run on |
+| **NOOBTOPIA** | the data and the Roblox surface: what a noob *says*, and a cheap place to try an interaction |
+
+**PARENA is the glue.** Rules that both worlds must agree on are written once, in a `.prn`, and emitted twice — to C
+for SHANKPIT, to Luau for this repo. Nothing here restates a threshold.
+
+## Quick start
+
+```bash
+# emit this repo's Luau rules from PARENA (needs a sibling ../PARENA checkout)
+scripts/gen_rules.sh
+# -> src/generated/ambient_life.lua, src/generated/arena_rules.lua   (committed; regenerate after editing a .prn)
+
+# tests (plain Lua, no Roblox needed)
+lua tests/ambient_test.lua
 ```
-local terrain = workspace.Terrain
 
-local messages = {
-	"Hello!",
-	"How are you?",
-	"I'm doing great!",
-	"This is a nice day.",
-	"I like your outfit.",
-	"What brings you here?",
-	"I'm so bored.",
-	"I could really go for a burger.",
-	"Do you like this game?",
-	"I'm a little lost.",
-	"What's your favorite color?",
-	"I'm feeling lucky today.",
-	"Have you seen any good movies lately?",
-	"I'm looking for something fun to do.",
-	"Have you tried the new update?",
-	"This is my favorite game!",
-	"I'm feeling a little down today.",
-	"I need a vacation.",
-	"What's your name?",
-	"I hope you're having a great day!",
-}
+In Roblox: put `src/noobtopia.lua` in `ServerScriptService`, `src/ambient.lua`, `src/big_o_witness.lua` and
+`src/generated/*.lua` beside it as ModuleScripts, `data/noob_lines.lua` too, and a rig named `Noob` in
+`ReplicatedStorage`. Then click a noob.
 
-local noobs = {}
+## What it does
 
--- Function to create a chat bubble above an NPC's head
-local function createChatBubble(npc, message)
-	local chatBubble = Instance.new("BillboardGui")
-	chatBubble.Size = UDim2.new(0, 175, 0, 80)
-	chatBubble.StudsOffset = Vector3.new(0, 25, 0)
-	chatBubble.Adornee = npc.PrimaryPart
-	chatBubble.AlwaysOnTop = true
-	chatBubble.Parent = npc
+- **Ambient talking** — the original script's 20 lines, now categorised (greeting / question / banter / complaint /
+  self) and scheduled by PARENA (`ambient_life.prn`): moods pick the category, the surface of the rules decides the
+  cooldown, so a crowd does not chant in unison.
+- **Slippery physics** — movement is a speed integrated by `arena_rules.prn`'s own `stepSpeed`/`slideDecay`, per
+  surface. Ice keeps you moving and barely lets you accelerate; concrete starts and stops hard. The same numbers
+  drive SHANKPIT's own C build, so this is the game's physics, not Roblox's.
+- **Combat** — fists / bat / pistol / rocket: damage, knockback, cooldown, distance falloff on to-hit, all from the
+  same rules file.
+- **BIG_O's witness rule** — a noob killed in front of others leaves witnesses. One or two go into denial and say so;
+  five or more stop pretending and turn on the killer; a compromised witness helps cover it up. `big_o_witness.lua`
+  is the IP's first system ported to Roblox.
 
-	local textLabel = Instance.new("TextLabel")
-	textLabel.BackgroundTransparency = .2
-	textLabel.Size = UDim2.new(1, 0, 1, 0)
-	textLabel.TextColor3 = Color3.new(0, 0, 0)
-	textLabel.BackgroundColor = BrickColor.new(1, 1, 1)
+## Files
 
-	textLabel.Font = Enum.Font.SourceSansBold
-	textLabel.TextScaled = true
-	textLabel.Text = message
-	textLabel.Parent = chatBubble
+| Path | What |
+|---|---|
+| `src/noobtopia.lua` | the Roblox host — the only file that touches `workspace` |
+| `src/ambient.lua` | data-facing helpers (grouping, speak); decisions delegated to PARENA |
+| `src/big_o_witness.lua` | BIG_O's witness/decorum rule, pure |
+| `src/generated/*.lua` | **generated** from PARENA — never edit by hand |
+| `data/noob_lines.lua` | the words. **Source of truth** for every line, in both worlds |
+| `tests/ambient_test.lua` | plain-Lua test of the rules, the data and the witness rule |
+| `noobtopia.lua`, `_.js`, `package.json` | the original single-file script and its JS stub, kept for the record |
 
-	-- Destroy the chat bubble after a delay
-	wait(7)
-	chatBubble:Destroy()
-end
+## Regenerating
 
-while true do
-	wait(.1)
-	if math.random(7) == 2 then
-		continue
-	end
-	local x = math.random(400)-math.random(400)
-	local z = math.random(400)-math.random(400)
+- **Words** — edit `data/noob_lines.lua`, then in SHANKPIT run `scripts/gen_ambient_lines.sh`; C picks the lines up
+  from there. No second copy exists.
+- **Rules** — edit `PARENA/stdlib/noobtopia/*.prn`, then `scripts/gen_rules.sh` here *and*
+  `SHANKPIT/scripts/gen_noobtopia_rules.sh` (for the C).
 
-	local position = Vector3.new(x, 3, z)
+## Honest status
 
-	-- Create NPC
-	local npc = workspace.Noob:Clone()
-	npc.Name = "NPC"
-	npc.Humanoid.Health = math.random(175)
-	npc.Parent = workspace
-	table.insert(noobs, npc)
-	npc:SetPrimaryPartCFrame(CFrame.new(position))
-
-	-- Create chat bubble
-	local message = messages[math.random(#messages)]
-	createChatBubble(npc, message)
-end
-
+The Roblox side is **written and reviewed, not executed**: no Lua interpreter or Studio exists on the build machine
+that produced it. The rules it calls are executed — SHANKPIT tests the C emitted from the same `.prn`
+(`make test-ambient-life`, `make test-noobtopia-arena`) — so the numbers are proven and the host is not. Getting it
+into a live place is a separate, later step.
