@@ -31,4 +31,11 @@ mkdir -p "$root/src/generated"
 "$parena_bin" build "$parena_dir/stdlib/noobtopia/ambient_life.prn" -o "$root/src/generated/ambient_life.lua"
 "$parena_bin" build "$parena_dir/stdlib/noobtopia/walk_rules.prn"   -o "$root/src/generated/walk_rules.lua"
 "$parena_bin" build "$parena_dir/stdlib/noobtopia/arena_rules.prn"  -o "$root/src/generated/arena_rules.lua"
-echo "regenerated src/generated/{ambient_life,walk_rules,arena_rules}.lua"
+
+# The ENGINE upgrades, which live in stdlib/shankpit/ because SHANKPIT owns the engine and this repo consumes it:
+# the environment matrix (weather/time/fog/ambient resolved into one state) and the material vocabulary (what a
+# surface is, as a function of the tick). Both were emitted to C long ago; this is the other half of the merge.
+"$parena_bin" build "$parena_dir/stdlib/shankpit/lighting_rules.prn" -o "$root/src/generated/lighting_rules.lua"
+"$parena_bin" build "$parena_dir/stdlib/shankpit/material_rules.prn" -o "$root/src/generated/material_rules.lua"
+
+echo "regenerated src/generated/{ambient_life,walk_rules,arena_rules,lighting_rules,material_rules}.lua"

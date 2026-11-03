@@ -27,6 +27,8 @@ scripts/gen_deadweight.sh
 # tests (plain Lua, no Roblox needed)
 lua tests/ambient_test.lua
 lua tests/walk_test.lua
+lua tests/lighting_test.lua             # the environment matrix, parity against the C in SHANKPIT
+lua tests/material_test.lua             # reflection / light styles / tints, same parity fixtures
 lua tests/deadweight_test.lua          # the rules + the citizen policy (287)
 lua tests/deadweight_match_test.lua    # whole matches vs SHANKPIT's C (903, 117 rounds)
 lua tests/deadweight_ladder_test.lua   # the ladder, script and all (107)
