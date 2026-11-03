@@ -3,44 +3,53 @@
 
 local M = {}
 
+-- `a / b` in PARENA is C's integer division (truncation toward zero), not Lua's `//`
+-- (floor). They disagree on every negative dividend, so the emitter routes `/` here
+-- instead of pretending the two are the same operator.
+local function __idiv(a, b)
+    local q = a // b
+    if q < 0 and q * b ~= a then q = q + 1 end
+    return q
+end
+
 function M.weaponDamage(weapon)
-    return ((weapon == 3) and 90 or ((weapon == 1) and 22 or ((weapon == 2) and 18 or 12)))
+    return (function() if (weapon == 3) then return 90 else return (function() if (weapon == 1) then return 22 else return (function() if (weapon == 2) then return 18 else return 12 end end)() end end)() end end)()
 end
 
 function M.weaponKnockbackPermille(weapon)
-    return ((weapon == 3) and 600 or ((weapon == 1) and 180 or ((weapon == 2) and 90 or 60)))
+    return (function() if (weapon == 3) then return 600 else return (function() if (weapon == 1) then return 180 else return (function() if (weapon == 2) then return 90 else return 60 end end)() end end)() end end)()
 end
 
 function M.weaponHitChancePermille(weapon, dist)
-    return ((dist < 0) and 950 or (((M.weaponHitBase(weapon) - (dist * 8)) > 950) and 950 or (((M.weaponHitBase(weapon) - (dist * 8)) < 50) and 50 or (M.weaponHitBase(weapon) - (dist * 8)))))
+    return (function() if (dist < 0) then return 950 else return (function() if ((M.weaponHitBase(weapon) - (dist * 8)) > 950) then return 950 else return (function() if ((M.weaponHitBase(weapon) - (dist * 8)) < 50) then return 50 else return (M.weaponHitBase(weapon) - (dist * 8)) end end)() end end)() end end)()
 end
 
 function M.weaponHitBase(weapon)
-    return ((weapon == 3) and 900 or ((weapon == 2) and 800 or ((weapon == 1) and 700 or 650)))
+    return (function() if (weapon == 3) then return 900 else return (function() if (weapon == 2) then return 800 else return (function() if (weapon == 1) then return 700 else return 650 end end)() end end)() end end)()
 end
 
 function M.weaponCooldownTicks(weapon)
-    return ((weapon == 3) and 90 or ((weapon == 2) and 30 or ((weapon == 1) and 24 or 8)))
+    return (function() if (weapon == 3) then return 90 else return (function() if (weapon == 2) then return 30 else return (function() if (weapon == 1) then return 24 else return 8 end end)() end end)() end end)()
 end
 
 function M.surfaceFrictionPermille(surface)
-    return ((surface == 1) and 120 or ((surface == 3) and 300 or ((surface == 2) and 600 or ((surface == 4) and 700 or 850))))
+    return (function() if (surface == 1) then return 120 else return (function() if (surface == 3) then return 300 else return (function() if (surface == 2) then return 600 else return (function() if (surface == 4) then return 700 else return 850 end end)() end end)() end end)() end end)()
 end
 
 function M.surfaceAccel(surface)
-    return ((surface == 1) and 1 or ((surface == 3) and 2 or ((surface == 2) and 3 or ((surface == 4) and 2 or 4))))
+    return (function() if (surface == 1) then return 1 else return (function() if (surface == 3) then return 2 else return (function() if (surface == 2) then return 3 else return (function() if (surface == 4) then return 2 else return 4 end end)() end end)() end end)() end end)()
 end
 
 function M.surfaceJumpImpulse(surface)
-    return ((surface == 1) and 5 or ((surface == 3) and 6 or ((surface == 2) and 8 or ((surface == 4) and 5 or 7))))
+    return (function() if (surface == 1) then return 5 else return (function() if (surface == 3) then return 6 else return (function() if (surface == 2) then return 8 else return (function() if (surface == 4) then return 5 else return 7 end end)() end end)() end end)() end end)()
 end
 
 function M.stepSpeed(speed, wish, surface)
-    return ((wish < 0) and M.slideDecay(speed, surface) or ((speed < wish) and (((speed + M.surfaceAccel(surface)) > wish) and wish or (speed + M.surfaceAccel(surface))) or ((speed > wish) and (((speed - M.surfaceAccel(surface)) < wish) and wish or (speed - M.surfaceAccel(surface))) or wish)))
+    return (function() if (wish < 0) then return M.slideDecay(speed, surface) else return (function() if (speed < wish) then return (function() if ((speed + M.surfaceAccel(surface)) > wish) then return wish else return (speed + M.surfaceAccel(surface)) end end)() else return (function() if (speed > wish) then return (function() if ((speed - M.surfaceAccel(surface)) < wish) then return wish else return (speed - M.surfaceAccel(surface)) end end)() else return wish end end)() end end)() end end)()
 end
 
 function M.slideDecay(speed, surface)
-    return ((speed <= 0) and 0 or ((((speed * M.surfaceFrictionPermille(surface)) // 1000) < 1) and (speed - 1) or (speed - ((speed * M.surfaceFrictionPermille(surface)) // 1000))))
+    return (function() if (speed <= 0) then return 0 else return (function() if (__idiv((speed * M.surfaceFrictionPermille(surface)), 1000) < 1) then return (speed - 1) else return (speed - __idiv((speed * M.surfaceFrictionPermille(surface)), 1000)) end end)() end end)()
 end
 
 return M

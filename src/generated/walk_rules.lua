@@ -3,40 +3,49 @@
 
 local M = {}
 
+-- `a / b` in PARENA is C's integer division (truncation toward zero), not Lua's `//`
+-- (floor). They disagree on every negative dividend, so the emitter routes `/` here
+-- instead of pretending the two are the same operator.
+local function __idiv(a, b)
+    local q = a // b
+    if q < 0 and q * b ~= a then q = q + 1 end
+    return q
+end
+
 function M.walkHeadingCount()
     return 8
 end
 
 function M.walkMod(count, seed)
-    return ((count <= 0) and 0 or ((seed < 0) and 0 or ((seed >= count) and (seed - ((seed // count) * count)) or seed)))
+    return (function() if (count <= 0) then return 0 else return (function() if (seed < 0) then return 0 else return (function() if (seed >= count) then return (seed - (__idiv(seed, count) * count)) else return seed end end)() end end)() end end)()
 end
 
 function M.walkJitter(span, seed)
-    return ((span <= 0) and 0 or M.walkMod(span, seed))
+    return (function() if (span <= 0) then return 0 else return M.walkMod(span, seed) end end)()
 end
 
 function M.walkIdleTicks(mood, seed)
-    return ((mood == 4) and (180 + M.walkJitter(120, seed)) or ((mood == 3) and (150 + M.walkJitter(240, seed)) or ((mood == 2) and (45 + M.walkJitter(90, seed)) or ((mood == 1) and (30 + M.walkJitter(60, seed)) or (90 + M.walkJitter(150, seed))))))
+    return (function() if (mood == 4) then return (180 + M.walkJitter(120, seed)) else return (function() if (mood == 3) then return (150 + M.walkJitter(240, seed)) else return (function() if (mood == 2) then return (45 + M.walkJitter(90, seed)) else return (function() if (mood == 1) then return (30 + M.walkJitter(60, seed)) else return (90 + M.walkJitter(150, seed)) end end)() end end)() end end)() end end)()
 end
 
 function M.walkShouldChoose(mood, sinceTicks, seed)
-    return ((sinceTicks < 0) and 0 or ((sinceTicks >= M.walkIdleTicks(mood, seed)) and 1 or 0))
+    return (function() if (sinceTicks < 0) then return 0 else return (function() if (sinceTicks >= M.walkIdleTicks(mood, seed)) then return 1 else return 0 end end)() end end)()
 end
 
 function M.walkLegLength(mood)
-    return ((mood == 4) and 4 or ((mood == 3) and 10 or ((mood == 2) and 24 or ((mood == 1) and 18 or 14))))
+    return (function() if (mood == 4) then return 4 else return (function() if (mood == 3) then return 10 else return (function() if (mood == 2) then return 24 else return (function() if (mood == 1) then return 18 else return 14 end end)() end end)() end end)() end end)()
 end
 
 function M.walkHeading(seed)
-    return ((seed < 0) and 0 or M.walkMod(M.walkHeadingCount(), seed))
+    return (function() if (seed < 0) then return 0 else return M.walkMod(M.walkHeadingCount(), seed) end end)()
 end
 
 function M.walkHeadingDx(heading)
-    return ((heading == 0) and 1 or ((heading == 1) and 1 or ((heading == 2) and 0 or ((heading == 3) and -1 or ((heading == 4) and -1 or ((heading == 5) and -1 or ((heading == 6) and 0 or 1)))))))
+    return (function() if (heading == 0) then return 1 else return (function() if (heading == 1) then return 1 else return (function() if (heading == 2) then return 0 else return (function() if (heading == 3) then return -1 else return (function() if (heading == 4) then return -1 else return (function() if (heading == 5) then return -1 else return (function() if (heading == 6) then return 0 else return 1 end end)() end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.walkHeadingDy(heading)
-    return ((heading == 0) and 0 or ((heading == 1) and 1 or ((heading == 2) and 1 or ((heading == 3) and 1 or ((heading == 4) and 0 or ((heading == 5) and -1 or ((heading == 6) and -1 or -1)))))))
+    return (function() if (heading == 0) then return 0 else return (function() if (heading == 1) then return 1 else return (function() if (heading == 2) then return 1 else return (function() if (heading == 3) then return 1 else return (function() if (heading == 4) then return 0 else return (function() if (heading == 5) then return -1 else return (function() if (heading == 6) then return -1 else return -1 end end)() end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.walkTargetDx(heading, leg)
@@ -48,11 +57,11 @@ function M.walkTargetDy(heading, leg)
 end
 
 function M.walkMoodSpeedPermille(mood)
-    return ((mood == 4) and 0 or ((mood == 3) and 400 or ((mood == 2) and 800 or ((mood == 1) and 1100 or 1000))))
+    return (function() if (mood == 4) then return 0 else return (function() if (mood == 3) then return 400 else return (function() if (mood == 2) then return 800 else return (function() if (mood == 1) then return 1100 else return 1000 end end)() end end)() end end)() end end)()
 end
 
 function M.walkWithinLeash(dx, dy, leash)
-    return ((leash < 0) and 0 or ((((dx * dx) + (dy * dy)) <= (leash * leash)) and 1 or 0))
+    return (function() if (leash < 0) then return 0 else return (function() if (((dx * dx) + (dy * dy)) <= (leash * leash)) then return 1 else return 0 end end)() end end)()
 end
 
 return M

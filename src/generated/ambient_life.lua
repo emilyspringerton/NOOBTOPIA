@@ -3,24 +3,33 @@
 
 local M = {}
 
+-- `a / b` in PARENA is C's integer division (truncation toward zero), not Lua's `//`
+-- (floor). They disagree on every negative dividend, so the emitter routes `/` here
+-- instead of pretending the two are the same operator.
+local function __idiv(a, b)
+    local q = a // b
+    if q < 0 and q * b ~= a then q = q + 1 end
+    return q
+end
+
 function M.ambientCategoryCount()
     return 5
 end
 
 function M.ambientCategoryForMood(mood)
-    return ((mood == 3) and 3 or ((mood == 2) and 2 or ((mood == 4) and 4 or ((mood == 1) and 1 or ((mood == 5) and 3 or 0)))))
+    return (function() if (mood == 3) then return 3 else return (function() if (mood == 2) then return 2 else return (function() if (mood == 4) then return 4 else return (function() if (mood == 1) then return 1 else return (function() if (mood == 5) then return 3 else return 0 end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.ambientCooldownMs(mood, seed)
-    return ((mood == 3) and (14000 + M.ambientPick(8000, seed)) or ((mood == 2) and (10000 + M.ambientPick(8000, seed)) or ((mood == 4) and (3000 + M.ambientPick(4000, seed)) or (6000 + M.ambientPick(8000, seed)))))
+    return (function() if (mood == 3) then return (14000 + M.ambientPick(8000, seed)) else return (function() if (mood == 2) then return (10000 + M.ambientPick(8000, seed)) else return (function() if (mood == 4) then return (3000 + M.ambientPick(4000, seed)) else return (6000 + M.ambientPick(8000, seed)) end end)() end end)() end end)()
 end
 
 function M.ambientShouldSpeak(mood, sinceMs, seed)
-    return ((sinceMs < 0) and 0 or ((sinceMs >= M.ambientCooldownMs(mood, seed)) and 1 or 0))
+    return (function() if (sinceMs < 0) then return 0 else return (function() if (sinceMs >= M.ambientCooldownMs(mood, seed)) then return 1 else return 0 end end)() end end)()
 end
 
 function M.ambientPick(count, seed)
-    return ((count <= 0) and 0 or ((seed < 0) and 0 or ((seed >= count) and (seed - ((seed // count) * count)) or seed)))
+    return (function() if (count <= 0) then return 0 else return (function() if (seed < 0) then return 0 else return (function() if (seed >= count) then return (seed - (__idiv(seed, count) * count)) else return seed end end)() end end)() end end)()
 end
 
 return M
