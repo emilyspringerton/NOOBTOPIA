@@ -89,6 +89,35 @@ The host warns in the output if the RemoteEvent is missing, so the gap announces
 | `tests/deadweight_tournament_test.lua` | the stage: seeding, byes, draws, champion (56 assertions) |
 | `docs/DEADWEIGHT_PORT.md` | what is ported and what is not, in order |
 
+## What is wired now (2026-11-03)
+
+The two engine upgrades reach the engine. `src/noobtopia.lua` -- still the only file that touches a service -- now,
+on a 0.25 s tick:
+
+- publishes its weather through attributes on `workspace` or `Lighting` (`SHANKPIT_cover`, `_rain`, `_storm`,
+  `_fog_wash`, `_visibility`, `_ambient_level`, `_flash`, `_interior`), resolves ONE scene through
+  `src/lighting.lua`, and writes `Lighting.Ambient`, `OutdoorAmbient` and `Brightness`. `FogEnd` is written only
+  when the place published a visibility reading, because "no fog reading" is not "zero fog";
+- classifies parts by name (mirror / metal / glass, else nothing) or by an explicit `SHANKPIT_Surface` attribute,
+  and writes `BasePart.Reflectance` from `src/material.lua` (mirror 0.9, metal 0.38, glass 0.32);
+- drives any `PointLight` carrying `SHANKPIT_LightStyle` (0..7) at 60 Hz ticks, so a strobe really strobes.
+
+The deciding lives in `src/wiring.lua`, which is duck-typed and tested under plain Lua (`tests/wiring_test.lua`,
+55 checks): it says WHICH keys to write, reports what it left alone (`kept_fog`), and leaves the host with nothing
+but a `Color3` wrapper.
+
+**A bug this last mile found, in the module rather than the wiring:** `Lighting.roblox()` clamped brightness to
+1.0, but the matrix's exposure runs 1000..1936 permille -- it LIFTS the low end -- so the clamp silently deleted the
+entire compensation term and handed a storm the same brightness as a clear sky. It is now clamped to the Lighting
+service's own range (0..3), and both suites pin that a dimmed world gets MORE than 1.0.
+
+Still unverified: **none of this has run in a place.** No Studio here, and `src/noobtopia.lua` is Luau (it uses
+`+=`), so it cannot even be syntax-checked on this box -- the numbers and the assignment decisions are tested, the
+assignment itself is not.
+
+Placement: `src/wiring.lua`, `src/lighting.lua` and `src/material.lua` go beside `src/noobtopia.lua`, with the
+generated modules under `src/generated/`.
+
 ## DEADWEIGHT (2026-11-03)
 
 SHANKPIT plays DEADWEIGHT — a card game where citizens challenge each other, challenge you, and build their
