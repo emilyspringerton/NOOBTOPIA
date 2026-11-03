@@ -22,7 +22,7 @@ scripts/gen_rules.sh
 
 # ...and DEADWEIGHT's card rules + citizen policy, the same two .prn SHANKPIT compiles to C
 scripts/gen_deadweight.sh
-# -> src/generated/deadweight_rules.lua, src/generated/deadweight_policy.lua
+# -> src/generated/deadweight_rules.lua, deadweight_policy.lua, deadweight_rating.lua, deadweight_stage.lua
 
 # tests (plain Lua, no Roblox needed)
 lua tests/ambient_test.lua
@@ -78,6 +78,7 @@ The host warns in the output if the RemoteEvent is missing, so the gap announces
 | `src/deadweight_ui.lua` | the tabletop, the `ProximityPrompt`, and the server-written board panel |
 | `src/deadweight_server.lua` | the glue: one ladder + one table per server, the tick, a frame per player |
 | `src/generated/deadweight_rating.lua` | the shared rating, emitted from `PARENA/stdlib/deadweight/rating.prn` |
+| `src/generated/deadweight_stage.lua` | the shared **bracket arithmetic** (fold, size, draw tie-break), emitted from `PARENA/stdlib/deadweight/stage.prn` |
 | `tests/deadweight_test.lua` | hand-derived parity checks against those two modules (287 assertions) |
 | `tests/deadweight_match_test.lua` | whole matches against the shared fixture (903 assertions, 117 rounds) |
 | `tests/deadweight_ladder_test.lua` | the ladder, executing the shared script (107 assertions) |

@@ -34,6 +34,10 @@
 
 local Ladder = require("deadweight_ladder")
 local Board = require("deadweight_board")
+-- the fold, the bracket size and the draw tie-break come from PARENA (stdlib/deadweight/stage.prn),
+-- the SAME file SHANKPIT emits to dw_stage_rules.c -- two stages in two worlds must pair a field
+-- identically, and the only way to guarantee that is to compute it once.
+local Stage = require("generated.deadweight_stage")
 
 local M = {}
 
@@ -52,8 +56,8 @@ function M.advanceByRank(rank, a, b)
     if a == nil then return b end
     if b == nil then return a end
     local ra, rb = rank[a] or 999, rank[b] or 999
-    if ra == rb then return (a < b) and a or b end   -- same rank cannot happen with distinct entrants; be total
-    return (ra < rb) and a or b
+    if ra == rb then return (a < b) and a or b end   -- distinct entrants never tie; be total
+    return (Stage.stageHigherSeed(ra, rb) == 0) and a or b
 end
 
 function M.new(ladder, board, opts)
@@ -90,8 +94,7 @@ function M.seed(t, now)
     local n = math.min(t.size, #rows)
     if n < 2 then return false end
 
-    local slots = 1
-    while slots < n do slots = slots * 2 end
+    local slots = Stage.stageSlots(n)
 
     t.entrants = {}
     t.rank = {}
@@ -104,7 +107,7 @@ function M.seed(t, now)
     local first = {}
     for i = 1, slots / 2 do
         local a = t.entrants[i] or nil
-        local b = t.entrants[slots - i + 1] or nil
+        local b = t.entrants[Stage.stageOpponent(slots, i)] or nil
         local m = { a = a, b = b, winner = nil, played = false, rankA = a and t.rank[a], rankB = b and t.rank[b] }
         if a and not b then m.winner = a; t.byes = t.byes + 1
         elseif b and not a then m.winner = b; t.byes = t.byes + 1 end

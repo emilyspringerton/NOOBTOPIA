@@ -94,7 +94,15 @@ expression) and a named refusal for statement forms it cannot express — before
    podiums, stands and banner, and `deadweight_server` opens the next bracket when three members exist
    and leaves the champion up for a minute. `lua tests/deadweight_tournament_test.lua` — 56 checks.
    *Not done:* it has never been rendered (Studio), it is best-of-one with no losers' bracket or
-   spectator camera, and the bracket is not published to WOTAN.
+   spectator camera.
+   **Published (2026-11-03, founder: "publish the stage")**, and publishing it is what closed a real
+   duplication: SHANKPIT needed a bracket too, so the FOLD moved to
+   `PARENA/stdlib/deadweight/stage.prn` and is emitted to both worlds
+   (`dw_stage_rules.c` / `src/generated/deadweight_stage.lua`). The world's own bracket
+   (`SHANKPIT/packages/simulation/dw_stage.c`) is published through `dw_net` schema 3 and drawn on
+   WOTAN's Citizens page. This module still owns the Roblox stage (seats, offers, the prompt); the two
+   share the arithmetic and nothing else, because a Roblox server and a SHANKPIT world are different
+   populations.
 
 ## Named risks
 

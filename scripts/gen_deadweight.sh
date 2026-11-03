@@ -33,13 +33,17 @@ mkdir -p "$root/src/generated"
     -o "$root/src/generated/deadweight_policy.lua"
 "$parena_bin" build "$parena_dir/stdlib/deadweight/rating.prn" \
     -o "$root/src/generated/deadweight_rating.lua"
+# The BRACKET's arithmetic -- the same .prn SHANKPIT emits to dw_stage_rules.c, so the Roblox stage
+# and the world's own stage pair a field identically instead of each keeping a fold.
+"$parena_bin" build "$parena_dir/stdlib/deadweight/stage.prn" \
+    -o "$root/src/generated/deadweight_stage.lua"
 
 # The emitter writes nothing on a construct it cannot express (no partial file), so a missing output is
 # the real failure signal -- parena's own exit code is not enough, which this check makes explicit.
-for f in deadweight_rules.lua deadweight_policy.lua deadweight_rating.lua; do
+for f in deadweight_rules.lua deadweight_policy.lua deadweight_rating.lua deadweight_stage.lua; do
     if [ ! -s "$root/src/generated/$f" ]; then
         echo "gen_deadweight: $f was not produced (an unsupported PRN form, not a silent pass)" >&2
         exit 1
     fi
 done
-echo "regenerated src/generated/{deadweight_rules,deadweight_policy,deadweight_rating}.lua"
+echo "regenerated src/generated/{deadweight_rules,deadweight_policy,deadweight_rating,deadweight_stage}.lua"
