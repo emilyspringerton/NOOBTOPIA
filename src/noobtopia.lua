@@ -29,6 +29,8 @@ local Ambient = require(script.Parent.ambient)
 local Witness = require(script.Parent.big_o_witness)
 local Arena = require(script.Parent.generated.arena_rules)
 local Wander = require(script.Parent.wander)
+local LightingMatrix = require(script.Parent.lighting)
+local Wiring = require(script.Parent.wiring)
 local LINES = require(script.Parent.data.noob_lines)
 
 -- Surface ids, matching PARENA/stdlib/noobtopia/arena_rules.prn:
@@ -198,9 +200,78 @@ local function tickNoob(noob, dt)
     end
 end
 
+-- ---- THE ENGINE UPGRADES, WIRED -------------------------------------------------------------------
+-- Until this block existed, src/lighting.lua and src/material.lua returned numbers and nothing applied them. This is
+-- the only place they reach the engine: the Lighting service's own properties, a part's Reflectance, a PointLight's
+-- Brightness. PARENA still decides the numbers (stdlib/shankpit/{lighting,material}_rules.prn), the two pure modules
+-- still do the conversion, and Wiring still decides WHAT to write -- so this block only reads attributes, calls
+-- those, and assigns.
+--
+-- A place publishes its weather through attributes on `workspace` (or on Lighting): SHANKPIT_cover, _rain, _storm,
+-- _fog_wash, _visibility, _ambient_level, _flash, _interior. Absent readings fall back to the .prn's own defaults,
+-- never to an invented value. Parts are classified by name (mirror / metal / glass, else nothing) unless they state
+-- SHANKPIT_Surface themselves, and a PointLight follows SHANKPIT_LightStyle (0..7) if it has one.
+local LightingSvc = game:GetService("Lighting")
+local ENV_EVERY = 0.25
+local MATERIAL_SCAN_EVERY = 5
+
+local envAccum, materialAccum = 0, MATERIAL_SCAN_EVERY
+local surfaceOn = {}          -- [part] = the surface id whose value is already written on it
+
+local function readSky()
+    return Wiring.skyFrom(function(key)
+        local v = workspace:GetAttribute("SHANKPIT_" .. key)
+        if v == nil then v = LightingSvc:GetAttribute("SHANKPIT_" .. key) end
+        return v
+    end)
+end
+
+local function wireEnvironment()
+    local scene = LightingMatrix.scene(readSky())
+    Wiring.applyPlan(Wiring.lightPlan(scene, STUD_PER_UNIT), LightingSvc, function(rgb)
+        return Color3.new(rgb[1], rgb[2], rgb[3])
+    end)
+    return scene
+end
+
+local function wireMaterials()
+    local tick = math.floor(os.clock() * 60)
+    for _, inst in ipairs(workspace:GetDescendants()) do
+        if inst:IsA("BasePart") then
+            local surface = Wiring.surfaceForPart(inst)
+            if surfaceOn[inst] ~= surface then
+                Wiring.applySurface(inst, surface)
+                surfaceOn[inst] = surface
+            end
+        elseif inst:IsA("PointLight") then
+            local style = tonumber(inst:GetAttribute("SHANKPIT_LightStyle"))
+            if style ~= nil then
+                -- a place is lit unless it says how lit: 900 is "a room with the lights on", and a fixture's own
+                -- floor is then the .prn's business, not this host's
+                local room = tonumber(inst:GetAttribute("SHANKPIT_RoomLight")) or 900
+                Wiring.applyFixture(inst, math.floor(style), tick, math.floor(room))
+            end
+        end
+    end
+end
+
+wireEnvironment()
+wireMaterials()
+
 -- Spawn up to MAX_NOOBS, topping up as they die (the original script's loop, minus the 0.1s hammering)
 local spawnAccum = 0
 RunService.Heartbeat:Connect(function(dt)
+    envAccum += dt
+    if envAccum >= ENV_EVERY then
+        envAccum = 0
+        wireEnvironment()
+    end
+    materialAccum += dt
+    if materialAccum >= MATERIAL_SCAN_EVERY then
+        materialAccum = 0
+        wireMaterials()
+    end
+
     local alive = 0
     for _, n in ipairs(noobs) do if not n.dead then alive += 1 end end
     spawnAccum += dt

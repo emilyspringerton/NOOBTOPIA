@@ -9,6 +9,15 @@
 -- The decisions are PARENA's (stdlib/shankpit/material_rules.prn), emitted to src/generated/material_rules.lua here
 -- and to C in SHANKPIT (packages/simulation/material_rules.c). Nothing in this file restates a number.
 --
+-- TWO DIFFERENT AXES LIVE IN THAT FILE, and conflating them is a real bug (this file did, for one commit):
+--
+--   * the ANIMATION KIND -- 0 plain, 1 scrolling, 2 frame-loop sprite, 3 palette-LUT, 4 emissive flicker -- says how
+--     a surface MOVES. Named `KIND_*` here.
+--   * the REFLECTION SURFACE -- 0 MIRROR, 1 METAL, 2 GLASS, anything else none -- says how much of the look is the
+--     environment. Named `MIRROR`/`METAL`/`GLASS`/`OTHER` here.
+--
+-- They share the integer 0 and mean completely different things, so they are never both called "kind".
+--
 -- Honest difference, stated rather than hidden: Roblox already ships real PBR (SurfaceAppearance) and real
 -- shadowed lighting, which SHANKPIT's fixed-function path does not have. So this host maps the rules onto the
 -- affordances Roblox actually has -- `BasePart.Reflectance` for the sphere-map reflection the C build draws by
@@ -36,8 +45,12 @@ Material.paletteIndex = Rules.paletteIndex256
 Material.voxelAxis = Rules.vlmAxisIndexMilli
 Material.VOXEL_AMBIENT_FLOOR = Rules.vlmAmbientFloorMilli()
 
--- Material kinds: 0 plain, 1 scrolling, 2 frame-loop sprite, 3 palette-LUT, 4 emissive flicker.
-Material.PLAIN, Material.SCROLL, Material.FRAME, Material.PALETTE, Material.FLICKER = 0, 1, 2, 3, 4
+-- The ANIMATION axis.
+Material.KIND_PLAIN, Material.KIND_SCROLL, Material.KIND_FRAME = 0, 1, 2
+Material.KIND_PALETTE, Material.KIND_FLICKER = 3, 4
+
+-- The REFLECTION axis. `OTHER` is not a fourth look: it is everything that reflects nothing and costs nothing.
+Material.MIRROR, Material.METAL, Material.GLASS, Material.OTHER = 0, 1, 2, 3
 
 -- Light styles (Quake's vocabulary): 0 steady, 1 strobe, 2 fluorescent, 3 broken, 4 pulse, 5 dying, 6 alarm,
 -- 7 candle.
@@ -45,15 +58,13 @@ Material.STEADY, Material.STROBE, Material.FLUORESCENT, Material.BROKEN = 0, 1, 
 Material.PULSE, Material.DYING, Material.ALARM, Material.CANDLE = 4, 5, 6, 7
 
 -- The one conversion this host owns: Roblox's Reflectance is 0..1 and the rules speak permille.
-function Material.reflectance(kind)
-    return Material.reflectionPermille(kind) / 1000
+function Material.reflectance(surface)
+    return Material.reflectionPermille(surface) / 1000
 end
 
--- What a host draws for one material at one tick. `room_light_milli` is the light already in the room, which is
--- what decides whether a fixture's own floor applies (a dying bulb in a lit room stays readable).
-function Material.appearance(kind, tick, room_light_milli)
+-- What a host draws for one material's ANIMATION at one tick.
+function Material.appearance(kind, tick)
     return {
-        reflectance = Material.reflectance(kind),
         scroll_u = Material.scrollU(kind, tick),
         scroll_v = Material.scrollV(kind, tick),
     }

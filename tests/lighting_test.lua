@@ -113,7 +113,13 @@ check(near.spread >= 1000 and near.spread <= 1600, "spread stays in its declared
 -- ---- 7. the host conversions are honest about what they are ----------------------------------------------
 local rb = Lighting.roblox(noon, 1)
 check(rb.ambient[1] >= 0 and rb.ambient[1] <= 1, "ambient is handed over as 0..1 for Color3")
-check(rb.brightness >= 0 and rb.brightness <= 1, "brightness is clamped to 0..1")
+check(rb.brightness >= 0 and rb.brightness <= Lighting.ROBLOX_BRIGHTNESS_MAX,
+    "brightness stays inside the Lighting service's own range")
+-- Exposure is 1000..1936 permille, so clamping it to 1.0 would silently delete the compensation term -- a storm
+-- would then be handed the same brightness as a clear sky. It must survive the conversion.
+local stormBright = Lighting.roblox(worst)
+check(stormBright.brightness > 1, "a dimmed world is handed MORE brightness than 1.0, not the same as a clear sky")
+check(stormBright.brightness > rb.brightness, "and strictly more than the clear reading above")
 eq(rb.fog_end, nil, "no visibility reading means NO fog end, not a fog end of zero")
 eq(Lighting.roblox(Lighting.scene({ visibility = 1500 }), 2).fog_end, 3000,
     "a fog end is the world's own scale times studs-per-unit")

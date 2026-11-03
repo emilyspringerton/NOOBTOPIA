@@ -89,12 +89,21 @@ fh:close()
 check(rows >= 20, "read at least 20 material parity vectors, got " .. rows)
 
 -- ---- the reflection ladder, in the words a designer uses -------------------------------------------------
-eq(Material.reflectance(Material.PLAIN), 0.9, "a mirror is 90% reflection, which is what makes it a mirror")
-eq(Material.reflectance(1), 0.38, "metal is a bright highlight over a real base coat")
-eq(Material.reflectance(2), 0.32, "glass stays subtle over a pane that is already transparent")
-eq(Material.reflectance(3), 0, "brick reflects nothing, and costs nothing")
-check(Material.reflectance(Material.PLAIN) > Material.reflectance(1), "a mirror out-reflects metal")
-check(Material.reflectance(1) > Material.reflectance(2), "and metal out-reflects glass")
+-- The REFLECTION axis, which is NOT the animation-kind axis: both start at 0 and mean different things, and this
+-- file once conflated them (calling the mirror "plain"). They are named apart now.
+eq(Material.reflectance(Material.MIRROR), 0.9, "a mirror is 90% reflection, which is what makes it a mirror")
+eq(Material.reflectance(Material.METAL), 0.38, "metal is a bright highlight over a real base coat")
+eq(Material.reflectance(Material.GLASS), 0.32, "glass stays subtle over a pane that is already transparent")
+eq(Material.reflectance(Material.OTHER), 0, "anything else reflects nothing, and costs nothing")
+check(Material.reflectance(Material.MIRROR) > Material.reflectance(Material.METAL), "a mirror out-reflects metal")
+check(Material.reflectance(Material.METAL) > Material.reflectance(Material.GLASS), "and metal out-reflects glass")
+-- Both axes happen to START at 0 -- that is precisely why they are named apart, so the check is that each name
+-- answers its own question and neither drifts into the other: `MIRROR` is a reflection surface, `KIND_PLAIN` is an
+-- animation kind (it does not scroll), and calling one where the other belongs would be a visible bug.
+eq(Material.MIRROR, 0, "the reflection axis starts at mirror")
+eq(Material.KIND_PLAIN, 0, "the animation axis starts at plain -- same integer, different question")
+eq(Material.appearance(Material.KIND_PLAIN, 500).scroll_u, 0, "a plain material does not scroll")
+eq(Material.reflectance(Material.MIRROR), 0.9, "and a mirror's reflection is not a scroll speed")
 
 -- ---- light styles are behaviours, not brightness levels --------------------------------------------------
 eq(Material.lightLevel(Material.STROBE, 0), 1000, "a strobe is fully on at tick 0")
@@ -107,7 +116,7 @@ check(Material.lightLevel(Material.DYING, 0) > Material.lightLevel(Material.DYIN
 check(Material.lightLevel(Material.STEADY, 12345) == 1000, "a steady fixture stays steady at any tick")
 
 -- ---- a fixture keeps a floor in a dark room, and does not blind you in a lit one --------------------------
-local dark = Material.fixture(Material.STROBE, 6, 100)
+local dark = Material.fixture(Material.STROBE, 6, 100)  -- a dark room: the fixture keeps its floor
 local lit = Material.fixture(Material.STROBE, 6, 900)
 check(dark.level >= 350, "in a dark room even an OFF fixture keeps a readable floor (" .. dark.level .. ")")
 check(lit.level <= dark.level, "a lit room does not push a fixture brighter than a dark one needs")
@@ -131,9 +140,9 @@ check(Material.frameIndex(10, 4, 6) ~= Material.frameIndex(10, 4, 12), "and adva
 eq(Material.frameIndex(0, 4, 100), 0, "a zero fps is frame 0, not a division by zero")
 eq(Material.paletteIndex(-1), 255, "a negative palette index wraps to 255, not -1")
 eq(Material.paletteIndex(256), 0, "and 256 wraps to 0")
-eq(Material.scrollU(Material.PLAIN, 500), 0, "a plain material does not scroll")
-check(Material.scrollU(Material.SCROLL, 30) > 0, "ooze creeps")
-check(Material.scrollV(Material.SCROLL, 30) > 0, "and creeps sideways, which is what makes it read as thick")
+eq(Material.scrollU(Material.KIND_PLAIN, 500), 0, "a plain material does not scroll")
+check(Material.scrollU(Material.KIND_SCROLL, 30) > 0, "ooze creeps")
+check(Material.scrollV(Material.KIND_SCROLL, 30) > 0, "and creeps sideways, which is what makes it read as thick")
 
 -- ---- the voxel lightmap has a floor outside every volume -------------------------------------------------
 eq(Material.VOXEL_AMBIENT_FLOOR, 120, "outside every probe volume there is still some light (120)")

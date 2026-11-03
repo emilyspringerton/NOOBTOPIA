@@ -41,6 +41,7 @@ Lighting.emitterSpreadScale = Rules.envEmitterSpreadScale
 
 Lighting.OPEN, Lighting.ROOFED = 0, 1
 Lighting.SLIDER_MIN, Lighting.SLIDER_MAX = 0, 10
+Lighting.ROBLOX_BRIGHTNESS_MAX = 3
 
 -- A world that has no ambient slider behaves like the middle of SHANKPIT's, rather than inventing a darker default.
 Lighting.DEFAULT_AMBIENT_LEVEL = 5
@@ -56,6 +57,16 @@ local function clamp01(x)
     if x > 1 then return 1 end
     return x
 end
+
+local function clampRange(x, lo, hi)
+    if x < lo then return lo end
+    if x > hi then return hi end
+    return x
+end
+
+-- Roblox's Brightness goes above 1 (a place can be brighter than its default); the ceiling here is the range a
+-- Lighting service accepts. It exists so the exposure term survives the conversion: the matrix's own exposure runs
+-- 1000..1936 permille -- it LIFTS the low end -- and clamping that to 1.0 would delete the whole compensation.
 
 -- The whole atmosphere, resolved once. `sky` is a plain table (a Roblox host fills it from its own weather state).
 -- Returns permille, in the same units the C side uses, so a board or a debug readout can show the real numbers.
@@ -107,7 +118,7 @@ function Lighting.roblox(scene_in, studs_per_unit)
         -- decides HOW MUCH light there is, not what colour the weather is.
         ambient = { floor, lit, floor },
         outdoor_ambient = { floor, lit, floor },
-        brightness = clamp01((s.exposure or 1000) / 1000),
+        brightness = clampRange((s.exposure or 1000) / 1000, 0, Lighting.ROBLOX_BRIGHTNESS_MAX),
         emissive = clamp01((s.emissive or 1000) / 1000),
         flash = clamp01((s.flash or 0) / 1000),
         -- nil means "no weather fog in this reading", which is a different fact from "zero fog distance".
