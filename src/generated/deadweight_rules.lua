@@ -28,15 +28,15 @@ function M.numCards()
 end
 
 function M.energyCap(e)
-    return ((e > 6) and 6 or e)
+    return (function() if (e > 6) then return 6 else return e end end)()
 end
 
 function M.pow3(n)
-    return ((n == 0) and 1 or ((n == 1) and 3 or ((n == 2) and 9 or ((n == 3) and 27 or ((n == 4) and 81 or ((n == 5) and 243 or ((n == 6) and 729 or ((n == 7) and 2187 or ((n == 8) and 6561 or ((n == 9) and 19683 or ((n == 10) and 59049 or ((n == 11) and 177147 or ((n == 12) and 531441 or ((n == 13) and 1594323 or ((n == 14) and 4782969 or 14348907)))))))))))))))
+    return (function() if (n == 0) then return 1 else return (function() if (n == 1) then return 3 else return (function() if (n == 2) then return 9 else return (function() if (n == 3) then return 27 else return (function() if (n == 4) then return 81 else return (function() if (n == 5) then return 243 else return (function() if (n == 6) then return 729 else return (function() if (n == 7) then return 2187 else return (function() if (n == 8) then return 6561 else return (function() if (n == 9) then return 19683 else return (function() if (n == 10) then return 59049 else return (function() if (n == 11) then return 177147 else return (function() if (n == 12) then return 531441 else return (function() if (n == 13) then return 1594323 else return (function() if (n == 14) then return 4782969 else return 14348907 end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.kindChunk(c)
-    return ((c == 0) and 14545359 or ((c == 1) and 30373336 or ((c == 2) and 38256857 or ((c == 3) and 43046683 or ((c == 4) and 21525884 or ((c == 5) and 202 or ((c == 6) and 0 or 0)))))))
+    return (function() if (c == 0) then return 14545359 else return (function() if (c == 1) then return 30373336 else return (function() if (c == 2) then return 38256857 else return (function() if (c == 3) then return 43046683 else return (function() if (c == 4) then return 21525884 else return (function() if (c == 5) then return 202 else return (function() if (c == 6) then return 0 else return 0 end end)() end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.mod3(x)
@@ -44,15 +44,15 @@ function M.mod3(x)
 end
 
 function M.cardKind(id)
-    return ((id < 9) and (id // 3) or M.mod3((M.kindChunk((id // 16)) // M.pow3((id - ((id // 16) * 16))))))
+    return (function() if (id < 9) then return (id // 3) else return M.mod3((M.kindChunk((id // 16)) // M.pow3((id - ((id // 16) * 16))))) end end)()
 end
 
 function M.pow6(n)
-    return ((n == 0) and 1 or ((n == 1) and 6 or ((n == 2) and 36 or ((n == 3) and 216 or ((n == 4) and 1296 or ((n == 5) and 7776 or ((n == 6) and 46656 or ((n == 7) and 279936 or ((n == 8) and 1679616 or 10077696)))))))))
+    return (function() if (n == 0) then return 1 else return (function() if (n == 1) then return 6 else return (function() if (n == 2) then return 36 else return (function() if (n == 3) then return 216 else return (function() if (n == 4) then return 1296 else return (function() if (n == 5) then return 7776 else return (function() if (n == 6) then return 46656 else return (function() if (n == 7) then return 279936 else return (function() if (n == 8) then return 1679616 else return 10077696 end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.kwChunk(c)
-    return ((c == 0) and 27864 or ((c == 1) and 47231430 or ((c == 2) and 50583558 or ((c == 3) and 1215648 or ((c == 4) and 3592514 or ((c == 5) and 29 or ((c == 6) and 1399680 or ((c == 7) and 35607998 or ((c == 8) and 1179 or ((c == 9) and 0 or ((c == 10) and 0 or 0)))))))))))
+    return (function() if (c == 0) then return 27864 else return (function() if (c == 1) then return 47231430 else return (function() if (c == 2) then return 50583558 else return (function() if (c == 3) then return 1215648 else return (function() if (c == 4) then return 3592514 else return (function() if (c == 5) then return 29 else return (function() if (c == 6) then return 1399680 else return (function() if (c == 7) then return 35607998 else return (function() if (c == 8) then return 1179 else return (function() if (c == 9) then return 0 else return (function() if (c == 10) then return 0 else return 0 end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.mod6(x)
@@ -60,63 +60,63 @@ function M.mod6(x)
 end
 
 function M.cardKeyword(id)
-    return ((id < 0) and 0 or M.mod6((M.kwChunk((id // 10)) // M.pow6((id - ((id // 10) * 10))))))
+    return (function() if (id < 0) then return 0 else return M.mod6((M.kwChunk((id // 10)) // M.pow6((id - ((id // 10) * 10))))) end end)()
 end
 
 function M.tierOfCost(c)
-    return ((c <= 1) and 0 or ((c <= 3) and 1 or 2))
+    return (function() if (c <= 1) then return 0 else return (function() if (c <= 3) then return 1 else return 2 end end)() end end)()
 end
 
 function M.cardTier(id)
-    return ((id < 9) and (id - ((id // 3) * 3)) or M.tierOfCost(M.cardCost(id)))
+    return (function() if (id < 9) then return (id - ((id // 3) * 3)) else return M.tierOfCost(M.cardCost(id)) end end)()
 end
 
 function M.costLo(id)
-    return ((id == 9) and 2 or ((id == 10) and 1 or ((id == 11) and 4 or ((id == 12) and 3 or ((id == 13) and 2 or ((id == 14) and 2 or ((id == 15) and 3 or ((id == 16) and 2 or ((id == 17) and 5 or ((id == 18) and 2 or ((id == 19) and 3 or ((id == 20) and 2 or ((id == 21) and 3 or ((id == 22) and 1 or ((id == 23) and 1 or ((id == 24) and 1 or 1))))))))))))))))
+    return (function() if (id == 9) then return 2 else return (function() if (id == 10) then return 1 else return (function() if (id == 11) then return 4 else return (function() if (id == 12) then return 3 else return (function() if (id == 13) then return 2 else return (function() if (id == 14) then return 2 else return (function() if (id == 15) then return 3 else return (function() if (id == 16) then return 2 else return (function() if (id == 17) then return 5 else return (function() if (id == 18) then return 2 else return (function() if (id == 19) then return 3 else return (function() if (id == 20) then return 2 else return (function() if (id == 21) then return 3 else return (function() if (id == 22) then return 1 else return (function() if (id == 23) then return 1 else return (function() if (id == 24) then return 1 else return 1 end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.costMid(id)
-    return ((id == 25) and 3 or ((id == 26) and 4 or ((id == 27) and 3 or ((id == 28) and 2 or ((id == 29) and 2 or ((id == 30) and 1 or ((id == 31) and 1 or ((id == 32) and 2 or ((id == 33) and 4 or ((id == 34) and 2 or ((id == 35) and 1 or ((id == 36) and 5 or ((id == 37) and 3 or ((id == 38) and 1 or ((id == 39) and 2 or ((id == 40) and 3 or 3))))))))))))))))
+    return (function() if (id == 25) then return 3 else return (function() if (id == 26) then return 4 else return (function() if (id == 27) then return 3 else return (function() if (id == 28) then return 2 else return (function() if (id == 29) then return 2 else return (function() if (id == 30) then return 1 else return (function() if (id == 31) then return 1 else return (function() if (id == 32) then return 2 else return (function() if (id == 33) then return 4 else return (function() if (id == 34) then return 2 else return (function() if (id == 35) then return 1 else return (function() if (id == 36) then return 5 else return (function() if (id == 37) then return 3 else return (function() if (id == 38) then return 1 else return (function() if (id == 39) then return 2 else return (function() if (id == 40) then return 3 else return 3 end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.costHi(id)
-    return ((id == 41) and 1 or ((id == 42) and 2 or ((id == 43) and 2 or ((id == 44) and 2 or ((id == 45) and 1 or ((id == 46) and 2 or ((id == 47) and 2 or ((id == 48) and 2 or ((id == 49) and 3 or ((id == 50) and 6 or ((id == 51) and 4 or ((id == 52) and 2 or ((id == 53) and 3 or ((id == 54) and 1 or ((id == 55) and 2 or ((id == 56) and 2 or 2))))))))))))))))
+    return (function() if (id == 41) then return 1 else return (function() if (id == 42) then return 2 else return (function() if (id == 43) then return 2 else return (function() if (id == 44) then return 2 else return (function() if (id == 45) then return 1 else return (function() if (id == 46) then return 2 else return (function() if (id == 47) then return 2 else return (function() if (id == 48) then return 2 else return (function() if (id == 49) then return 3 else return (function() if (id == 50) then return 6 else return (function() if (id == 51) then return 4 else return (function() if (id == 52) then return 2 else return (function() if (id == 53) then return 3 else return (function() if (id == 54) then return 1 else return (function() if (id == 55) then return 2 else return (function() if (id == 56) then return 2 else return 2 end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.costTop(id)
-    return ((id == 57) and 2 or ((id == 58) and 3 or ((id == 59) and 3 or ((id == 60) and 3 or ((id == 61) and 3 or ((id == 62) and 1 or ((id == 63) and 2 or ((id == 64) and 4 or ((id == 65) and 3 or ((id == 66) and 5 or ((id == 67) and 2 or ((id == 68) and 2 or ((id == 69) and 4 or ((id == 70) and 4 or ((id == 71) and 4 or ((id == 72) and 2 or 2))))))))))))))))
+    return (function() if (id == 57) then return 2 else return (function() if (id == 58) then return 3 else return (function() if (id == 59) then return 3 else return (function() if (id == 60) then return 3 else return (function() if (id == 61) then return 3 else return (function() if (id == 62) then return 1 else return (function() if (id == 63) then return 2 else return (function() if (id == 64) then return 4 else return (function() if (id == 65) then return 3 else return (function() if (id == 66) then return 5 else return (function() if (id == 67) then return 2 else return (function() if (id == 68) then return 2 else return (function() if (id == 69) then return 4 else return (function() if (id == 70) then return 4 else return (function() if (id == 71) then return 4 else return (function() if (id == 72) then return 2 else return 2 end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.cardCost(id)
-    return ((id < 0) and 0 or ((id < 9) and ((M.cardTier(id) == 0) and 1 or ((M.cardTier(id) == 1) and 2 or 4)) or ((id < 25) and M.costLo(id) or ((id < 41) and M.costMid(id) or ((id < 57) and M.costHi(id) or ((id < 73) and M.costTop(id) or ((id < 89) and M.costN1(id) or M.costN2(id))))))))
+    return (function() if (id < 0) then return 0 else return (function() if (id < 9) then return (function() if (M.cardTier(id) == 0) then return 1 else return (function() if (M.cardTier(id) == 1) then return 2 else return 4 end end)() end end)() else return (function() if (id < 25) then return M.costLo(id) else return (function() if (id < 41) then return M.costMid(id) else return (function() if (id < 57) then return M.costHi(id) else return (function() if (id < 73) then return M.costTop(id) else return (function() if (id < 89) then return M.costN1(id) else return M.costN2(id) end end)() end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.powerLo(id)
-    return ((id == 9) and 4 or ((id == 10) and 8 or ((id == 11) and 8 or ((id == 12) and 3 or ((id == 13) and 5 or ((id == 14) and 3 or ((id == 15) and 2 or ((id == 16) and 2 or ((id == 17) and 14 or ((id == 18) and 1 or ((id == 19) and 3 or ((id == 20) and 12 or ((id == 21) and 3 or ((id == 22) and 0 or ((id == 23) and 2 or ((id == 24) and 9 or 0))))))))))))))))
+    return (function() if (id == 9) then return 4 else return (function() if (id == 10) then return 8 else return (function() if (id == 11) then return 8 else return (function() if (id == 12) then return 3 else return (function() if (id == 13) then return 5 else return (function() if (id == 14) then return 3 else return (function() if (id == 15) then return 2 else return (function() if (id == 16) then return 2 else return (function() if (id == 17) then return 14 else return (function() if (id == 18) then return 1 else return (function() if (id == 19) then return 3 else return (function() if (id == 20) then return 12 else return (function() if (id == 21) then return 3 else return (function() if (id == 22) then return 0 else return (function() if (id == 23) then return 2 else return (function() if (id == 24) then return 9 else return 0 end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.powerMid(id)
-    return ((id == 25) and 5 or ((id == 26) and 6 or ((id == 27) and 3 or ((id == 28) and 6 or ((id == 29) and 3 or ((id == 30) and 6 or ((id == 31) and 2 or ((id == 32) and 4 or ((id == 33) and 3 or ((id == 34) and 0 or ((id == 35) and 0 or ((id == 36) and 0 or ((id == 37) and 0 or ((id == 38) and 0 or ((id == 39) and 0 or ((id == 40) and 2 or 0))))))))))))))))
+    return (function() if (id == 25) then return 5 else return (function() if (id == 26) then return 6 else return (function() if (id == 27) then return 3 else return (function() if (id == 28) then return 6 else return (function() if (id == 29) then return 3 else return (function() if (id == 30) then return 6 else return (function() if (id == 31) then return 2 else return (function() if (id == 32) then return 4 else return (function() if (id == 33) then return 3 else return (function() if (id == 34) then return 0 else return (function() if (id == 35) then return 0 else return (function() if (id == 36) then return 0 else return (function() if (id == 37) then return 0 else return (function() if (id == 38) then return 0 else return (function() if (id == 39) then return 0 else return (function() if (id == 40) then return 2 else return 0 end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.powerHi(id)
-    return ((id == 41) and 3 or ((id == 42) and 4 or ((id == 43) and 0 or ((id == 44) and 2 or ((id == 45) and 0 or ((id == 46) and 1 or ((id == 47) and 2 or ((id == 48) and 0 or ((id == 49) and 0 or ((id == 50) and 0 or ((id == 51) and 0 or ((id == 52) and 4 or ((id == 53) and 3 or ((id == 54) and 0 or ((id == 55) and 2 or ((id == 56) and 2 or 0))))))))))))))))
+    return (function() if (id == 41) then return 3 else return (function() if (id == 42) then return 4 else return (function() if (id == 43) then return 0 else return (function() if (id == 44) then return 2 else return (function() if (id == 45) then return 0 else return (function() if (id == 46) then return 1 else return (function() if (id == 47) then return 2 else return (function() if (id == 48) then return 0 else return (function() if (id == 49) then return 0 else return (function() if (id == 50) then return 0 else return (function() if (id == 51) then return 0 else return (function() if (id == 52) then return 4 else return (function() if (id == 53) then return 3 else return (function() if (id == 54) then return 0 else return (function() if (id == 55) then return 2 else return (function() if (id == 56) then return 2 else return 0 end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.powerTop(id)
-    return ((id == 57) and 3 or ((id == 58) and 0 or ((id == 59) and 4 or ((id == 60) and 0 or ((id == 61) and 3 or ((id == 62) and 0 or ((id == 63) and 5 or ((id == 64) and 4 or ((id == 65) and 0 or ((id == 66) and 0 or ((id == 67) and 3 or ((id == 68) and 1 or ((id == 69) and 0 or ((id == 70) and 2 or ((id == 71) and 0 or ((id == 72) and 1 or 0))))))))))))))))
+    return (function() if (id == 57) then return 3 else return (function() if (id == 58) then return 0 else return (function() if (id == 59) then return 4 else return (function() if (id == 60) then return 0 else return (function() if (id == 61) then return 3 else return (function() if (id == 62) then return 0 else return (function() if (id == 63) then return 5 else return (function() if (id == 64) then return 4 else return (function() if (id == 65) then return 0 else return (function() if (id == 66) then return 0 else return (function() if (id == 67) then return 3 else return (function() if (id == 68) then return 1 else return (function() if (id == 69) then return 0 else return (function() if (id == 70) then return 2 else return (function() if (id == 71) then return 0 else return (function() if (id == 72) then return 1 else return 0 end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.cardPower(id)
-    return ((id < 0) and 0 or ((id < 9) and ((M.cardTier(id) == 0) and 3 or ((M.cardTier(id) == 1) and 6 or 10)) or ((id < 25) and M.powerLo(id) or ((id < 41) and M.powerMid(id) or ((id < 57) and M.powerHi(id) or ((id < 73) and M.powerTop(id) or ((id < 89) and M.powerN1(id) or M.powerN2(id))))))))
+    return (function() if (id < 0) then return 0 else return (function() if (id < 9) then return (function() if (M.cardTier(id) == 0) then return 3 else return (function() if (M.cardTier(id) == 1) then return 6 else return 10 end end)() end end)() else return (function() if (id < 25) then return M.powerLo(id) else return (function() if (id < 41) then return M.powerMid(id) else return (function() if (id < 57) then return M.powerHi(id) else return (function() if (id < 73) then return M.powerTop(id) else return (function() if (id < 89) then return M.powerN1(id) else return M.powerN2(id) end end)() end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.cardCredit(id)
-    return ((id == 13) and 2 or ((id == 30) and 2 or ((id == 51) and 3 or ((id == 59) and 2 or ((id == 100) and 3 or 0)))))
+    return (function() if (id == 13) then return 2 else return (function() if (id == 30) then return 2 else return (function() if (id == 51) then return 3 else return (function() if (id == 59) then return 2 else return (function() if (id == 100) then return 3 else return 0 end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.kindBeats(a, b)
-    return (b == ((a == 2) and 0 or (a + 1)))
+    return (b == (function() if (a == 2) then return 0 else return (a + 1) end end)())
 end
 
 function M.isLegalPlay(id, energy, vault)
@@ -124,7 +124,7 @@ function M.isLegalPlay(id, energy, vault)
 end
 
 function M.damageDealt(a, b)
-    return ((a < 0) and 0 or ((b < 0) and ((M.cardKind(a) == 2) and 0 or M.cardPower(a)) or ((M.cardKind(a) == M.cardKind(b)) and ((M.cardKind(a) == 0) and M.cardPower(a) or ((M.cardKind(a) == 1) and (M.cardPower(a) // 2) or 0)) or (M.kindBeats(M.cardKind(a), M.cardKind(b)) and M.cardPower(a) or 0))))
+    return (function() if (a < 0) then return 0 else return (function() if (b < 0) then return (function() if (M.cardKind(a) == 2) then return 0 else return M.cardPower(a) end end)() else return (function() if (M.cardKind(a) == M.cardKind(b)) then return (function() if (M.cardKind(a) == 0) then return M.cardPower(a) else return (function() if (M.cardKind(a) == 1) then return (M.cardPower(a) // 2) else return 0 end end)() end end)() else return (function() if M.kindBeats(M.cardKind(a), M.cardKind(b)) then return M.cardPower(a) else return 0 end end)() end end)() end end)() end end)()
 end
 
 function M.roundStartEnergy(e)
@@ -132,19 +132,19 @@ function M.roundStartEnergy(e)
 end
 
 function M.roundStartVault(v)
-    return ((v > 98) and 99 or (v + 1))
+    return (function() if (v > 98) then return 99 else return (v + 1) end end)()
 end
 
 function M.energyAfterPlay(e, played)
-    return ((played < 0) and M.energyCap((e + 1)) or (e - M.cardCost(played)))
+    return (function() if (played < 0) then return M.energyCap((e + 1)) else return (e - M.cardCost(played)) end end)()
 end
 
 function M.roundWinnerByHull(h0, h1)
-    return ((h0 > h1) and 0 or ((h0 < h1) and 1 or 2))
+    return (function() if (h0 > h1) then return 0 else return (function() if (h0 < h1) then return 1 else return 2 end end)() end end)()
 end
 
 function M.roundWinner(h0, h1, v0, v1)
-    return ((h0 > h1) and 0 or ((h0 < h1) and 1 or ((v0 > v1) and 0 or ((v0 < v1) and 1 or 2))))
+    return (function() if (h0 > h1) then return 0 else return (function() if (h0 < h1) then return 1 else return (function() if (v0 > v1) then return 0 else return (function() if (v0 < v1) then return 1 else return 2 end end)() end end)() end end)() end end)()
 end
 
 function M.matchDecided(h0, h1)
@@ -156,7 +156,7 @@ function M.bankrupt(v)
 end
 
 function M.cardSubstitute(id, roll)
-    return ((id == 34) and ((roll < 25) and 35 or ((roll < 50) and 21 or ((roll < 75) and 20 or 36))) or id)
+    return (function() if (id == 34) then return (function() if (roll < 25) then return 35 else return (function() if (roll < 50) then return 21 else return (function() if (roll < 75) then return 20 else return 36 end end)() end end)() end end)() else return id end end)()
 end
 
 function M.fx(ch, nn, pp, m, a)
@@ -164,79 +164,79 @@ function M.fx(ch, nn, pp, m, a)
 end
 
 function M.fxaLo(id)
-    return ((id == 9) and M.fx(23, 1, 0, 0, 1) or ((id == 10) and M.fx(21, 0, 0, 0, 4) or ((id == 11) and M.fx(3, 0, 0, 0, 4) or ((id == 12) and M.fx(1, 1, 0, 3, 1) or ((id == 13) and M.fx(22, 17, 3, 0, 6) or ((id == 14) and M.fx(1, 6, 1, 0, 3) or ((id == 15) and M.fx(32, 1, 0, 0, 35) or ((id == 16) and M.fx(1, 9, 10, 0, 8) or ((id == 17) and M.fx(21, 0, 0, 0, 4) or ((id == 18) and M.fx(1, 0, 0, 1, 1) or ((id == 19) and M.fx(1, 14, 1, 0, 8) or ((id == 20) and M.fx(21, 0, 0, 0, 6) or ((id == 21) and M.fx(9, 0, 0, 0, 1) or ((id == 22) and M.fx(1, 18, 50, 0, 9) or ((id == 23) and M.fx(1, 5, 0, 0, 4) or M.fx(21, 2, 0, 0, 5))))))))))))))))
+    return (function() if (id == 9) then return M.fx(23, 1, 0, 0, 1) else return (function() if (id == 10) then return M.fx(21, 0, 0, 0, 4) else return (function() if (id == 11) then return M.fx(3, 0, 0, 0, 4) else return (function() if (id == 12) then return M.fx(1, 1, 0, 3, 1) else return (function() if (id == 13) then return M.fx(22, 17, 3, 0, 6) else return (function() if (id == 14) then return M.fx(1, 6, 1, 0, 3) else return (function() if (id == 15) then return M.fx(32, 1, 0, 0, 35) else return (function() if (id == 16) then return M.fx(1, 9, 10, 0, 8) else return (function() if (id == 17) then return M.fx(21, 0, 0, 0, 4) else return (function() if (id == 18) then return M.fx(1, 0, 0, 1, 1) else return (function() if (id == 19) then return M.fx(1, 14, 1, 0, 8) else return (function() if (id == 20) then return M.fx(21, 0, 0, 0, 6) else return (function() if (id == 21) then return M.fx(9, 0, 0, 0, 1) else return (function() if (id == 22) then return M.fx(1, 18, 50, 0, 9) else return (function() if (id == 23) then return M.fx(1, 5, 0, 0, 4) else return M.fx(21, 2, 0, 0, 5) end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.fxbLo(id)
-    return ((id == 21) and M.fx(31, 0, 0, 0, 2) or ((id == 22) and M.fx(21, 21, 50, 0, 3) or 0))
+    return (function() if (id == 21) then return M.fx(31, 0, 0, 0, 2) else return (function() if (id == 22) then return M.fx(21, 21, 50, 0, 3) else return 0 end end)() end end)()
 end
 
 function M.fxaMid(id)
-    return ((id == 25) and M.fx(2, 0, 0, 0, 1) or ((id == 26) and M.fx(1, 9, 8, 0, 8) or ((id == 27) and M.fx(1, 8, 6, 0, 11) or ((id == 28) and M.fx(1, 0, 0, 0, 2) or ((id == 29) and M.fx(24, 1, 0, 0, 1) or ((id == 31) and M.fx(23, 10, 3, 0, 1) or ((id == 32) and M.fx(6, 2, 0, 6, 5) or ((id == 33) and M.fx(28, 2, 0, 6, 5) or ((id == 35) and M.fx(23, 0, 0, 0, 3) or ((id == 36) and M.fx(7, 0, 0, 0, 1) or ((id == 37) and M.fx(22, 4, 0, 2, 2) or ((id == 38) and M.fx(23, 15, 0, 0, 3) or ((id == 39) and M.fx(33, 0, 0, 0, 36) or ((id == 40) and M.fx(32, 0, 0, 0, 21) or 0))))))))))))))
+    return (function() if (id == 25) then return M.fx(2, 0, 0, 0, 1) else return (function() if (id == 26) then return M.fx(1, 9, 8, 0, 8) else return (function() if (id == 27) then return M.fx(1, 8, 6, 0, 11) else return (function() if (id == 28) then return M.fx(1, 0, 0, 0, 2) else return (function() if (id == 29) then return M.fx(24, 1, 0, 0, 1) else return (function() if (id == 31) then return M.fx(23, 10, 3, 0, 1) else return (function() if (id == 32) then return M.fx(6, 2, 0, 6, 5) else return (function() if (id == 33) then return M.fx(28, 2, 0, 6, 5) else return (function() if (id == 35) then return M.fx(23, 0, 0, 0, 3) else return (function() if (id == 36) then return M.fx(7, 0, 0, 0, 1) else return (function() if (id == 37) then return M.fx(22, 4, 0, 2, 2) else return (function() if (id == 38) then return M.fx(23, 15, 0, 0, 3) else return (function() if (id == 39) then return M.fx(33, 0, 0, 0, 36) else return (function() if (id == 40) then return M.fx(32, 0, 0, 0, 21) else return 0 end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.fxbMid(id)
-    return ((id == 35) and M.fx(21, 2, 0, 0, 5) or ((id == 36) and M.fx(8, 0, 0, 0, 1) or 0))
+    return (function() if (id == 35) then return M.fx(21, 2, 0, 0, 5) else return (function() if (id == 36) then return M.fx(8, 0, 0, 0, 1) else return 0 end end)() end end)()
 end
 
 function M.fxaHi(id)
-    return ((id == 41) and M.fx(23, 0, 0, 0, 1) or ((id == 42) and M.fx(20, 0, 0, 0, 2) or ((id == 43) and M.fx(23, 0, 0, 0, 2) or ((id == 44) and M.fx(29, 0, 0, 0, 2) or ((id == 45) and M.fx(23, 0, 0, 0, 4) or ((id == 46) and M.fx(31, 0, 0, 0, 3) or ((id == 47) and M.fx(35, 0, 0, 0, 3) or ((id == 48) and M.fx(34, 0, 0, 0, 1) or ((id == 49) and M.fx(37, 0, 0, 0, 1) or ((id == 50) and M.fx(7, 0, 0, 0, 1) or ((id == 51) and M.fx(36, 0, 0, 0, 1) or ((id == 52) and M.fx(20, 2, 0, 5, 3) or ((id == 53) and M.fx(4, 8, 6, 0, 1) or ((id == 54) and M.fx(23, 0, 0, 0, 1) or ((id == 55) and M.fx(20, 8, 8, 0, 4) or M.fx(28, 2, 0, 0, 3))))))))))))))))
+    return (function() if (id == 41) then return M.fx(23, 0, 0, 0, 1) else return (function() if (id == 42) then return M.fx(20, 0, 0, 0, 2) else return (function() if (id == 43) then return M.fx(23, 0, 0, 0, 2) else return (function() if (id == 44) then return M.fx(29, 0, 0, 0, 2) else return (function() if (id == 45) then return M.fx(23, 0, 0, 0, 4) else return (function() if (id == 46) then return M.fx(31, 0, 0, 0, 3) else return (function() if (id == 47) then return M.fx(35, 0, 0, 0, 3) else return (function() if (id == 48) then return M.fx(34, 0, 0, 0, 1) else return (function() if (id == 49) then return M.fx(37, 0, 0, 0, 1) else return (function() if (id == 50) then return M.fx(7, 0, 0, 0, 1) else return (function() if (id == 51) then return M.fx(36, 0, 0, 0, 1) else return (function() if (id == 52) then return M.fx(20, 2, 0, 5, 3) else return (function() if (id == 53) then return M.fx(4, 8, 6, 0, 1) else return (function() if (id == 54) then return M.fx(23, 0, 0, 0, 1) else return (function() if (id == 55) then return M.fx(20, 8, 8, 0, 4) else return M.fx(28, 2, 0, 0, 3) end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.fxbHi(id)
-    return ((id == 45) and M.fx(30, 0, 0, 0, 4) or ((id == 49) and M.fx(29, 0, 0, 0, 2) or ((id == 50) and M.fx(24, 0, 0, 0, 6) or ((id == 54) and M.fx(21, 16, 6, 0, 4) or 0))))
+    return (function() if (id == 45) then return M.fx(30, 0, 0, 0, 4) else return (function() if (id == 49) then return M.fx(29, 0, 0, 0, 2) else return (function() if (id == 50) then return M.fx(24, 0, 0, 0, 6) else return (function() if (id == 54) then return M.fx(21, 16, 6, 0, 4) else return 0 end end)() end end)() end end)() end end)()
 end
 
 function M.fxaTop(id)
-    return ((id == 57) and M.fx(23, 6, 0, 0, 2) or ((id == 58) and M.fx(4, 0, 0, 0, 1) or ((id == 59) and M.fx(5, 0, 0, 0, 1) or ((id == 60) and M.fx(4, 0, 0, 0, 1) or ((id == 61) and M.fx(28, 0, 0, 0, 4) or ((id == 62) and M.fx(28, 0, 0, 0, 2) or ((id == 63) and M.fx(28, 0, 0, 0, 2) or ((id == 64) and M.fx(6, 0, 0, 6, 10) or ((id == 65) and M.fx(20, 0, 0, 0, 6) or ((id == 66) and M.fx(20, 0, 0, 0, 8) or ((id == 67) and M.fx(24, 7, 3, 0, 2) or ((id == 68) and M.fx(41, 0, 0, 0, 4) or ((id == 69) and M.fx(39, 0, 0, 0, 1) or ((id == 70) and M.fx(34, 0, 0, 0, 2) or ((id == 71) and M.fx(40, 0, 0, 0, 1) or M.fx(29, 0, 0, 0, 2))))))))))))))))
+    return (function() if (id == 57) then return M.fx(23, 6, 0, 0, 2) else return (function() if (id == 58) then return M.fx(4, 0, 0, 0, 1) else return (function() if (id == 59) then return M.fx(5, 0, 0, 0, 1) else return (function() if (id == 60) then return M.fx(4, 0, 0, 0, 1) else return (function() if (id == 61) then return M.fx(28, 0, 0, 0, 4) else return (function() if (id == 62) then return M.fx(28, 0, 0, 0, 2) else return (function() if (id == 63) then return M.fx(28, 0, 0, 0, 2) else return (function() if (id == 64) then return M.fx(6, 0, 0, 6, 10) else return (function() if (id == 65) then return M.fx(20, 0, 0, 0, 6) else return (function() if (id == 66) then return M.fx(20, 0, 0, 0, 8) else return (function() if (id == 67) then return M.fx(24, 7, 3, 0, 2) else return (function() if (id == 68) then return M.fx(41, 0, 0, 0, 4) else return (function() if (id == 69) then return M.fx(39, 0, 0, 0, 1) else return (function() if (id == 70) then return M.fx(34, 0, 0, 0, 2) else return (function() if (id == 71) then return M.fx(40, 0, 0, 0, 1) else return M.fx(29, 0, 0, 0, 2) end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.fxbTop(id)
-    return ((id == 57) and M.fx(29, 6, 0, 0, 1) or ((id == 58) and M.fx(26, 0, 0, 0, 2) or ((id == 60) and M.fx(26, 0, 0, 0, 1) or ((id == 64) and M.fx(42, 0, 0, 0, 1) or ((id == 66) and M.fx(43, 0, 0, 0, 1) or ((id == 72) and M.fx(31, 0, 0, 0, 2) or 0))))))
+    return (function() if (id == 57) then return M.fx(29, 6, 0, 0, 1) else return (function() if (id == 58) then return M.fx(26, 0, 0, 0, 2) else return (function() if (id == 60) then return M.fx(26, 0, 0, 0, 1) else return (function() if (id == 64) then return M.fx(42, 0, 0, 0, 1) else return (function() if (id == 66) then return M.fx(43, 0, 0, 0, 1) else return (function() if (id == 72) then return M.fx(31, 0, 0, 0, 2) else return 0 end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.costN1(id)
-    return ((id == 73) and 1 or ((id == 74) and 3 or ((id == 75) and 4 or ((id == 76) and 2 or ((id == 77) and 5 or ((id == 78) and 2 or ((id == 79) and 3 or ((id == 80) and 1 or ((id == 81) and 2 or ((id == 82) and 3 or ((id == 83) and 2 or ((id == 84) and 3 or ((id == 85) and 3 or ((id == 86) and 2 or ((id == 87) and 4 or ((id == 88) and 3 or 0))))))))))))))))
+    return (function() if (id == 73) then return 1 else return (function() if (id == 74) then return 3 else return (function() if (id == 75) then return 4 else return (function() if (id == 76) then return 2 else return (function() if (id == 77) then return 5 else return (function() if (id == 78) then return 2 else return (function() if (id == 79) then return 3 else return (function() if (id == 80) then return 1 else return (function() if (id == 81) then return 2 else return (function() if (id == 82) then return 3 else return (function() if (id == 83) then return 2 else return (function() if (id == 84) then return 3 else return (function() if (id == 85) then return 3 else return (function() if (id == 86) then return 2 else return (function() if (id == 87) then return 4 else return (function() if (id == 88) then return 3 else return 0 end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.costN2(id)
-    return ((id == 89) and 1 or ((id == 90) and 2 or ((id == 91) and 2 or ((id == 92) and 2 or ((id == 93) and 6 or ((id == 94) and 2 or ((id == 95) and 3 or ((id == 96) and 1 or ((id == 97) and 1 or ((id == 98) and 3 or ((id == 99) and 4 or ((id == 100) and 5 or ((id == 101) and 3 or ((id == 102) and 1 or ((id == 103) and 3 or ((id == 104) and 2 or 0))))))))))))))))
+    return (function() if (id == 89) then return 1 else return (function() if (id == 90) then return 2 else return (function() if (id == 91) then return 2 else return (function() if (id == 92) then return 2 else return (function() if (id == 93) then return 6 else return (function() if (id == 94) then return 2 else return (function() if (id == 95) then return 3 else return (function() if (id == 96) then return 1 else return (function() if (id == 97) then return 1 else return (function() if (id == 98) then return 3 else return (function() if (id == 99) then return 4 else return (function() if (id == 100) then return 5 else return (function() if (id == 101) then return 3 else return (function() if (id == 102) then return 1 else return (function() if (id == 103) then return 3 else return (function() if (id == 104) then return 2 else return 0 end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.powerN1(id)
-    return ((id == 73) and 3 or ((id == 74) and 6 or ((id == 75) and 7 or ((id == 76) and 4 or ((id == 77) and 9 or ((id == 78) and 3 or ((id == 79) and 5 or ((id == 80) and 1 or ((id == 81) and 1 or ((id == 82) and 2 or ((id == 83) and 2 or ((id == 84) and 4 or ((id == 85) and 4 or ((id == 86) and 2 or ((id == 87) and 8 or ((id == 88) and 8 or 0))))))))))))))))
+    return (function() if (id == 73) then return 3 else return (function() if (id == 74) then return 6 else return (function() if (id == 75) then return 7 else return (function() if (id == 76) then return 4 else return (function() if (id == 77) then return 9 else return (function() if (id == 78) then return 3 else return (function() if (id == 79) then return 5 else return (function() if (id == 80) then return 1 else return (function() if (id == 81) then return 1 else return (function() if (id == 82) then return 2 else return (function() if (id == 83) then return 2 else return (function() if (id == 84) then return 4 else return (function() if (id == 85) then return 4 else return (function() if (id == 86) then return 2 else return (function() if (id == 87) then return 8 else return (function() if (id == 88) then return 8 else return 0 end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.powerN2(id)
-    return ((id == 89) and 6 or ((id == 90) and 3 or ((id == 91) and 4 or ((id == 92) and 3 or ((id == 93) and 14 or ((id == 94) and 3 or ((id == 95) and 5 or ((id == 96) and 3 or ((id == 97) and 3 or ((id == 98) and 8 or ((id == 99) and 8 or ((id == 100) and 10 or ((id == 101) and 9 or ((id == 102) and 1 or ((id == 103) and 6 or ((id == 104) and 5 or 0))))))))))))))))
+    return (function() if (id == 89) then return 6 else return (function() if (id == 90) then return 3 else return (function() if (id == 91) then return 4 else return (function() if (id == 92) then return 3 else return (function() if (id == 93) then return 14 else return (function() if (id == 94) then return 3 else return (function() if (id == 95) then return 5 else return (function() if (id == 96) then return 3 else return (function() if (id == 97) then return 3 else return (function() if (id == 98) then return 8 else return (function() if (id == 99) then return 8 else return (function() if (id == 100) then return 10 else return (function() if (id == 101) then return 9 else return (function() if (id == 102) then return 1 else return (function() if (id == 103) then return 6 else return (function() if (id == 104) then return 5 else return 0 end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.fxaN1(id)
-    return ((id == 73) and 20000001 or ((id == 74) and 10602004 or ((id == 75) and 20000001 or ((id == 76) and 10703003 or ((id == 77) and 20000001 or ((id == 78) and 10500005 or ((id == 79) and 30000004 or ((id == 80) and 10602006 or ((id == 81) and 10400202 or ((id == 82) and 320100050 or ((id == 83) and 240100002 or ((id == 84) and 60000603 or ((id == 85) and 10000401 or ((id == 86) and 220100003 or ((id == 87) and 220100004 or ((id == 88) and 210000002 or 0))))))))))))))))
+    return (function() if (id == 73) then return 20000001 else return (function() if (id == 74) then return 10602004 else return (function() if (id == 75) then return 20000001 else return (function() if (id == 76) then return 10703003 else return (function() if (id == 77) then return 20000001 else return (function() if (id == 78) then return 10500005 else return (function() if (id == 79) then return 30000004 else return (function() if (id == 80) then return 10602006 else return (function() if (id == 81) then return 10400202 else return (function() if (id == 82) then return 320100050 else return (function() if (id == 83) then return 240100002 else return (function() if (id == 84) then return 60000603 else return (function() if (id == 85) then return 10000401 else return (function() if (id == 86) then return 220100003 else return (function() if (id == 87) then return 220100004 else return (function() if (id == 88) then return 210000002 else return 0 end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.fxaN2(id)
-    return ((id == 89) and 210000003 or ((id == 90) and 10400003 or ((id == 91) and 290100001 or ((id == 92) and 11104003 or ((id == 93) and 220100006 or ((id == 94) and 11840007 or ((id == 95) and 10000901 or ((id == 96) and 11003004 or ((id == 97) and 11702004 or ((id == 98) and 230000001 or ((id == 99) and 10601004 or ((id == 100) and 10100008 or ((id == 101) and 210200003 or ((id == 102) and 11850005 or ((id == 103) and 10500003 or ((id == 104) and 210000001 or 0))))))))))))))))
+    return (function() if (id == 89) then return 210000003 else return (function() if (id == 90) then return 10400003 else return (function() if (id == 91) then return 290100001 else return (function() if (id == 92) then return 11104003 else return (function() if (id == 93) then return 220100006 else return (function() if (id == 94) then return 11840007 else return (function() if (id == 95) then return 10000901 else return (function() if (id == 96) then return 11003004 else return (function() if (id == 97) then return 11702004 else return (function() if (id == 98) then return 230000001 else return (function() if (id == 99) then return 10601004 else return (function() if (id == 100) then return 10100008 else return (function() if (id == 101) then return 210200003 else return (function() if (id == 102) then return 11850005 else return (function() if (id == 103) then return 10500003 else return (function() if (id == 104) then return 210000001 else return 0 end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.fxbN1(id)
-    return ((id == 73) and 0 or ((id == 74) and 0 or ((id == 75) and 30000003 or ((id == 76) and 0 or ((id == 77) and 10910005 or ((id == 78) and 10602002 or ((id == 79) and 0 or ((id == 80) and 0 or ((id == 81) and 0 or ((id == 82) and 0 or ((id == 83) and 230100002 or ((id == 84) and 280000003 or ((id == 85) and 0 or ((id == 86) and 0 or ((id == 87) and 0 or ((id == 88) and 0 or 0))))))))))))))))
+    return (function() if (id == 73) then return 0 else return (function() if (id == 74) then return 0 else return (function() if (id == 75) then return 30000003 else return (function() if (id == 76) then return 0 else return (function() if (id == 77) then return 10910005 else return (function() if (id == 78) then return 10602002 else return (function() if (id == 79) then return 0 else return (function() if (id == 80) then return 0 else return (function() if (id == 81) then return 0 else return (function() if (id == 82) then return 0 else return (function() if (id == 83) then return 230100002 else return (function() if (id == 84) then return 280000003 else return (function() if (id == 85) then return 0 else return (function() if (id == 86) then return 0 else return (function() if (id == 87) then return 0 else return (function() if (id == 88) then return 0 else return 0 end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.fxbN2(id)
-    return ((id == 89) and 0 or ((id == 90) and 0 or ((id == 91) and 0 or ((id == 92) and 0 or ((id == 93) and 0 or ((id == 94) and 12140001 or ((id == 95) and 0 or ((id == 96) and 0 or ((id == 97) and 0 or ((id == 98) and 0 or ((id == 99) and 0 or ((id == 100) and 0 or ((id == 101) and 0 or ((id == 102) and 0 or ((id == 103) and 0 or ((id == 104) and 0 or 0))))))))))))))))
+    return (function() if (id == 89) then return 0 else return (function() if (id == 90) then return 0 else return (function() if (id == 91) then return 0 else return (function() if (id == 92) then return 0 else return (function() if (id == 93) then return 0 else return (function() if (id == 94) then return 12140001 else return (function() if (id == 95) then return 0 else return (function() if (id == 96) then return 0 else return (function() if (id == 97) then return 0 else return (function() if (id == 98) then return 0 else return (function() if (id == 99) then return 0 else return (function() if (id == 100) then return 0 else return (function() if (id == 101) then return 0 else return (function() if (id == 102) then return 0 else return (function() if (id == 103) then return 0 else return (function() if (id == 104) then return 0 else return 0 end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.baseFx(id)
-    return ((id == 3) and M.fx(1, 6, 2, 0, 1) or ((id == 4) and M.fx(1, 6, 2, 0, 2) or ((id == 5) and M.fx(1, 6, 2, 0, 3) or 0)))
+    return (function() if (id == 3) then return M.fx(1, 6, 2, 0, 1) else return (function() if (id == 4) then return M.fx(1, 6, 2, 0, 2) else return (function() if (id == 5) then return M.fx(1, 6, 2, 0, 3) else return 0 end end)() end end)() end end)()
 end
 
 function M.cardFxA(id)
-    return ((id < 9) and M.baseFx(id) or ((id < 25) and M.fxaLo(id) or ((id < 41) and M.fxaMid(id) or ((id < 57) and M.fxaHi(id) or ((id < 73) and M.fxaTop(id) or ((id < 89) and M.fxaN1(id) or M.fxaN2(id)))))))
+    return (function() if (id < 9) then return M.baseFx(id) else return (function() if (id < 25) then return M.fxaLo(id) else return (function() if (id < 41) then return M.fxaMid(id) else return (function() if (id < 57) then return M.fxaHi(id) else return (function() if (id < 73) then return M.fxaTop(id) else return (function() if (id < 89) then return M.fxaN1(id) else return M.fxaN2(id) end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.cardFxB(id)
-    return ((id < 21) and 0 or ((id < 25) and M.fxbLo(id) or ((id < 41) and M.fxbMid(id) or ((id < 57) and M.fxbHi(id) or ((id < 73) and M.fxbTop(id) or ((id < 89) and M.fxbN1(id) or M.fxbN2(id)))))))
+    return (function() if (id < 21) then return 0 else return (function() if (id < 25) then return M.fxbLo(id) else return (function() if (id < 41) then return M.fxbMid(id) else return (function() if (id < 57) then return M.fxbHi(id) else return (function() if (id < 73) then return M.fxbTop(id) else return (function() if (id < 89) then return M.fxbN1(id) else return M.fxbN2(id) end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.fxCh(x)
@@ -260,19 +260,19 @@ function M.fxAa(x)
 end
 
 function M.fxPhase(ch)
-    return ((ch < 20) and 1 or 2)
+    return (function() if (ch < 20) then return 1 else return 2 end end)()
 end
 
 function M.fxCondOk(x, dealt, taken, mk, ok, oc, mh, oh, el, oe, mv, ov, rnd, roll)
-    return ((M.fxNn(x) == 0) and (x >= 0) or ((M.fxNn(x) == 1) and ((dealt > 0) and (((ok >= 0) and M.kindBeats(mk, ok)) or ((ok < 0) and (not ((mk == 2)))))) or ((M.fxNn(x) == 2) and (taken > 0) or ((M.fxNn(x) == 3) and ((ok >= 0) and M.kindBeats(ok, mk)) or ((M.fxNn(x) == 4) and (ok >= 0) or ((M.fxNn(x) == 5) and (ok < 0) or ((M.fxNn(x) == 6) and (ok == M.fxPp(x)) or ((M.fxNn(x) == 7) and ((ok >= 0) and (oc >= M.fxPp(x))) or ((M.fxNn(x) == 8) and (mh <= M.fxPp(x)) or ((M.fxNn(x) == 9) and (oh <= M.fxPp(x)) or ((M.fxNn(x) == 10) and (el >= M.fxPp(x)) or ((M.fxNn(x) == 11) and (oe >= M.fxPp(x)) or ((M.fxNn(x) == 12) and (mv >= M.fxPp(x)) or ((M.fxNn(x) == 13) and (mv < M.fxPp(x)) or ((M.fxNn(x) == 14) and (ov < M.fxPp(x)) or ((M.fxNn(x) == 15) and ((dealt <= 0) and (taken <= 0)) or ((M.fxNn(x) == 16) and (taken >= M.fxPp(x)) or ((M.fxNn(x) == 17) and ((M.fxPp(x) > 0) and ((rnd - ((rnd // M.fxPp(x)) * M.fxPp(x))) == 0)) or ((M.fxNn(x) == 18) and (roll < M.fxPp(x)) or ((M.fxNn(x) == 19) and (dealt >= M.fxPp(x)) or ((M.fxNn(x) == 20) and (not ((ok == M.fxPp(x)))) or (roll >= M.fxPp(x)))))))))))))))))))))))
+    return (function() if (M.fxNn(x) == 0) then return (x >= 0) else return (function() if (M.fxNn(x) == 1) then return ((dealt > 0) and (((ok >= 0) and M.kindBeats(mk, ok)) or ((ok < 0) and (not ((mk == 2)))))) else return (function() if (M.fxNn(x) == 2) then return (taken > 0) else return (function() if (M.fxNn(x) == 3) then return ((ok >= 0) and M.kindBeats(ok, mk)) else return (function() if (M.fxNn(x) == 4) then return (ok >= 0) else return (function() if (M.fxNn(x) == 5) then return (ok < 0) else return (function() if (M.fxNn(x) == 6) then return (ok == M.fxPp(x)) else return (function() if (M.fxNn(x) == 7) then return ((ok >= 0) and (oc >= M.fxPp(x))) else return (function() if (M.fxNn(x) == 8) then return (mh <= M.fxPp(x)) else return (function() if (M.fxNn(x) == 9) then return (oh <= M.fxPp(x)) else return (function() if (M.fxNn(x) == 10) then return (el >= M.fxPp(x)) else return (function() if (M.fxNn(x) == 11) then return (oe >= M.fxPp(x)) else return (function() if (M.fxNn(x) == 12) then return (mv >= M.fxPp(x)) else return (function() if (M.fxNn(x) == 13) then return (mv < M.fxPp(x)) else return (function() if (M.fxNn(x) == 14) then return (ov < M.fxPp(x)) else return (function() if (M.fxNn(x) == 15) then return ((dealt <= 0) and (taken <= 0)) else return (function() if (M.fxNn(x) == 16) then return (taken >= M.fxPp(x)) else return (function() if (M.fxNn(x) == 17) then return ((M.fxPp(x) > 0) and ((rnd - ((rnd // M.fxPp(x)) * M.fxPp(x))) == 0)) else return (function() if (M.fxNn(x) == 18) then return (roll < M.fxPp(x)) else return (function() if (M.fxNn(x) == 19) then return (dealt >= M.fxPp(x)) else return (function() if (M.fxNn(x) == 20) then return (not ((ok == M.fxPp(x)))) else return (roll >= M.fxPp(x)) end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.fxScale(x, dealt, taken, oc, mh, el, oe, mv, rnd)
-    return ((M.fxM(x) == 0) and M.fxAa(x) or ((M.fxM(x) == 1) and (M.fxAa(x) * oe) or ((M.fxM(x) == 2) and (M.fxAa(x) * oc) or ((M.fxM(x) == 3) and ((M.fxAa(x) * rnd) // 2) or ((M.fxM(x) == 4) and (M.fxAa(x) * el) or ((M.fxM(x) == 5) and ((taken < M.fxAa(x)) and taken or M.fxAa(x)) or ((M.fxM(x) == 6) and ((taken * M.fxAa(x)) // 10) or ((M.fxM(x) == 7) and ((dealt * M.fxAa(x)) // 10) or ((M.fxM(x) == 8) and ((M.fxAa(x) * (20 - mh)) // 4) or ((M.fxAa(x) * ((mv < 0) and 0 or mv)) // 2))))))))))
+    return (function() if (M.fxM(x) == 0) then return M.fxAa(x) else return (function() if (M.fxM(x) == 1) then return (M.fxAa(x) * oe) else return (function() if (M.fxM(x) == 2) then return (M.fxAa(x) * oc) else return (function() if (M.fxM(x) == 3) then return ((M.fxAa(x) * rnd) // 2) else return (function() if (M.fxM(x) == 4) then return (M.fxAa(x) * el) else return (function() if (M.fxM(x) == 5) then return (function() if (taken < M.fxAa(x)) then return taken else return M.fxAa(x) end end)() else return (function() if (M.fxM(x) == 6) then return ((taken * M.fxAa(x)) // 10) else return (function() if (M.fxM(x) == 7) then return ((dealt * M.fxAa(x)) // 10) else return (function() if (M.fxM(x) == 8) then return ((M.fxAa(x) * (20 - mh)) // 4) else return ((M.fxAa(x) * (function() if (mv < 0) then return 0 else return mv end end)()) // 2) end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.fxAmount(x, dealt, taken, mk, ok, oc, mh, oh, el, oe, mv, ov, rnd, roll)
-    return ((x == 0) and 0 or (M.fxCondOk(x, dealt, taken, mk, ok, oc, mh, oh, el, oe, mv, ov, rnd, roll) and M.fxScale(x, dealt, taken, oc, mh, el, oe, mv, rnd) or 0))
+    return (function() if (x == 0) then return 0 else return (function() if M.fxCondOk(x, dealt, taken, mk, ok, oc, mh, oh, el, oe, mv, ov, rnd, roll) then return M.fxScale(x, dealt, taken, oc, mh, el, oe, mv, rnd) else return 0 end end)() end end)()
 end
 
 return M

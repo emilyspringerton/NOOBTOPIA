@@ -11,8 +11,10 @@ repo already follows holds here: **PARENA is the glue.** A number lives in one `
 | The 105-card rules: kinds, the triangle, costs/powers/credits, the packed fx engine, match constants | `PARENA/stdlib/deadweight/card_rules.prn` | `src/generated/deadweight_rules.lua` — generated, committed, 68 functions |
 | The citizen policy: win rate, identity, the answer to a meta, card scoring, deck crafting | `PARENA/stdlib/deadweight/citizen_policy.prn` | `src/generated/deadweight_policy.lua` — generated, committed |
 | A real interpreter check | — | `lua tests/deadweight_test.lua` — **287 checks, 0 failed** |
+| The sequencer: a whole match, round by round | `SHANKPIT/packages/simulation/dw_match.c` (hand-written in both worlds) | `src/deadweight_game.lua` — data only, no `workspace` |
+| The match fixture both worlds assert | — | `PARENA/stdlib/deadweight/match_parity.txt` — `lua tests/deadweight_match_test.lua` **903 checks, 0 failed**, 117 rounds across 5 matches |
 
-Both files are emitted by `scripts/gen_deadweight.sh`. SHANKPIT emits the SAME two `.prn` files to C
+Both generated files are emitted by `scripts/gen_deadweight.sh`. SHANKPIT emits the SAME two `.prn` files to C
 (`packages/simulation/dw_rules.c`, `dw_citizen_rules.c`), so the parity test here and `make test-deadweight`
 there are two ends of one claim. If they ever disagree, the `.prn` is right.
 
@@ -22,14 +24,23 @@ expression) and a named refusal for statement forms it cannot express — before
 
 ## What is NOT ported, in the order it makes sense to do it
 
-1. **The sequencer.** `dw_match.c` in SHANKPIT is the game: 20 hull, 2 energy (+2/round capped 6, +1 for
-   passing), 3 credits (+1/round), 4-card hands, 32 effect channels, bankruptcy below -6, 100-round draw.
-   A Luau port belongs here as `src/deadweight_game.lua` — a DATA module (state transitions only, no
-   `workspace`), the same layering `src/wander.lua` and `src/big_o_witness.lua` already use. It must be
-   driven by the generated rules, never by its own copy of a number.
-   *Done when:* the SAME seed, deck pair and per-round plays produce identical hull/energy/credit numbers
-   here and in SHANKPIT — which means a **parity vector file** (`PARENA/stdlib/deadweight/match_parity.txt`,
-   the convention `walk_parity.txt` already set) that both suites assert.
+1. ~~The sequencer.~~ **DONE (2026-11-03).** `src/deadweight_game.lua` is the game: 20 hull, 2 energy
+   (+2/round capped 6, +1 for passing), 3 credits (+1/round), 4-card hands, all 32 effect channels in
+   both phases, bankruptcy below -6, the 100-round draw. It is driven by the generated rules and holds
+   no copy of a number. The *Done when* was met as specified: `PARENA/stdlib/deadweight/match_parity.txt`
+   holds five whole matches (seed, each seat's deck-crafting inputs, aggression, and every round's cards,
+   hulls, energy, credits and damage), written AND read by SHANKPIT's `dw_match_parity_test.c`
+   (`make test-dw-parity` / `make regen-dw-parity`) and asserted here by
+   `tests/deadweight_match_test.lua`. **Two real bugs came out of that comparison, one in each world,**
+   and both are worth remembering as the class of thing this fixture is for:
+   * PARENA's Lua emitter lowered `if` to `(cond and then or else)`, so a FALSE branch inside a nested
+     Bool ladder fell through into the next `or` — `fx-cond-ok` answered true whenever the ladder's own
+     final `roll >= PP` test passed. Fixed in `src/emit_lua.c` (an IIFE: `if c then return A else
+     return B end`), which is what made the rules identical in both worlds at all.
+   * SHANKPIT's sequencer chose each seat's card BEFORE the round dealt, so it read the previous hand --
+     and on a fresh match, four zero-filled slots, so round 1 played card 0, a card neither seat held.
+     Both sequencers now split a round into BEGIN (clock, economy, deal, DISABLE) and FINISH, with the
+     policy choosing in between. The C fix is in `dw_match.c`.
 2. **The ladder.** `dw_ladder.c` owns challenges in four directions, records, the meta tally and decks that
    re-craft from both. In Roblox this is DataStore-shaped rather than process-shaped, and the honest
    question is whether a citizen's record should be per-place-session or persistent across places. Decide it

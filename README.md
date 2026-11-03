@@ -65,7 +65,9 @@ The host warns in the output if the RemoteEvent is missing, so the gap announces
 | `src/generated/*.lua` | **generated** from PARENA — never edit by hand |
 | `src/generated/deadweight_rules.lua` | DEADWEIGHT's 105-card rules, emitted from `PARENA/stdlib/deadweight/card_rules.prn` |
 | `src/generated/deadweight_policy.lua` | the citizen policy (win rate, the answer to a meta, deck crafting) |
+| `src/deadweight_game.lua` | the **sequencer** — a match, round by round; ported from SHANKPIT's `dw_match.c` |
 | `tests/deadweight_test.lua` | hand-derived parity checks against those two modules (287 assertions) |
+| `tests/deadweight_match_test.lua` | whole matches against the shared fixture (903 assertions, 117 rounds) |
 | `docs/DEADWEIGHT_PORT.md` | what is ported and what is not, in order |
 
 ## DEADWEIGHT (2026-11-03)
@@ -79,10 +81,19 @@ values SHANKPIT's `make test-deadweight` pins — start hull 20 / energy 2 / cre
 rounds, the base line's tier→cost table, the triangle's antisymmetry, and the policy's 500/666 win-rate
 smoothing.
 
-What is NOT here yet, deliberately and in order: the **sequencer** (the round-by-round game loop lives in
-`SHANKPIT/packages/simulation/dw_match.c`), the **ladder** (challenges, records, meta), the Roblox surface
-(a table, a prompt, a board GUI), and publishing to the same schema WOTAN reads. `docs/DEADWEIGHT_PORT.md`
-has the phases, the parity-vector plan, and the two real risks (Luau's doubles, and 5.4 not being Luau).
+**The sequencer is here too** (2026-11-03): `src/deadweight_game.lua` plays a whole match — 20 hull,
+the round economy, 4-card hands off a 16-card deck, all 32 effect channels in both phases, bankruptcy,
+and the 100-round draw — as a data module with no `workspace` in it. The sequencer is the one piece still
+hand-written per world, so it is pinned by DATA: `PARENA/stdlib/deadweight/match_parity.txt` holds five
+whole matches and **both** SHANKPIT's `make test-dw-parity` and `lua tests/deadweight_match_test.lua`
+assert the same rows (117 rounds, every card, hull, energy and credit). Writing it found a real bug in
+each world, both fixed: the emitter's `if` lowering mangled Bool ladders, and SHANKPIT's policy chose
+its card before the round dealt.
+
+What is NOT here yet, deliberately and in order: the **ladder** (challenges in four directions, records,
+the meta tally), the **Roblox surface** (a Noob at a table, a `ProximityPrompt`, a board GUI), and
+publishing to the same schema WOTAN reads. `docs/DEADWEIGHT_PORT.md` has the phases and the two real
+risks (Luau's doubles, and 5.4 not being Luau).
 | `data/noob_lines.lua` | the words. **Source of truth** for every line, in both worlds |
 | `tests/ambient_test.lua` | plain-Lua test of the rules, the data and the witness rule |
 | `tests/walk_test.lua` | plain-Lua test of the walk rule against the shared `walk_parity.txt` vectors |
@@ -98,8 +109,9 @@ has the phases, the parity-vector plan, and the two real risks (Luau's doubles, 
 
 ## Honest status
 
-DEADWEIGHT's rules and policy are **generated and executed here** (287 checks under a real Lua), but the game
-itself is not: no sequencer, no ladder, no Roblox surface. `docs/DEADWEIGHT_PORT.md` says so phase by phase.
+DEADWEIGHT's rules, policy **and sequencer** are generated and executed here (287 + 903 checks under a real
+Lua, the match half against vectors SHANKPIT's C asserts too), but the game is not *playable* here yet:
+no ladder, no Roblox surface, nothing drawn. `docs/DEADWEIGHT_PORT.md` says so phase by phase.
 
 The Luau modules are **executed** — `lua tests/ambient_test.lua` and `lua tests/walk_test.lua` run clean on Lua 5.4,
 and the walk half is pinned against parity vectors the C asserts too. That is plain Lua, not Luau: 5.4 has 64-bit

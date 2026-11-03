@@ -4,31 +4,31 @@
 local M = {}
 
 function M.cpWinratePermille(wins, games)
-    return ((games <= 0) and 500 or (function() local w = ((wins < 0) and 0 or wins); local g = ((w < games) and games or w); return (((w + 1) * 1000) // (g + 2)) end)())
+    return (function() if (games <= 0) then return 500 else return (function() local w = (function() if (wins < 0) then return 0 else return wins end end)(); local g = (function() if (w < games) then return games else return w end end)(); return (((w + 1) * 1000) // (g + 2)) end)() end end)()
 end
 
 function M.cpKindIdentity(path)
-    return ((path == 2) and 0 or ((path == 3) and 0 or ((path == 4) and 2 or 1)))
+    return (function() if (path == 2) then return 0 else return (function() if (path == 3) then return 0 else return (function() if (path == 4) then return 2 else return 1 end end)() end end)() end end)()
 end
 
 function M.cpKindAnswer(meta_kind)
-    return ((meta_kind == 0) and 2 or ((meta_kind == 1) and 0 or 1))
+    return (function() if (meta_kind == 0) then return 2 else return (function() if (meta_kind == 1) then return 0 else return 1 end end)() end end)()
 end
 
 function M.cpDeckKind(path, winrate, meta_kind, meta_share)
-    return ((meta_kind < 0) and M.cpKindIdentity(path) or ((meta_share <= 400) and M.cpKindIdentity(path) or (function() local lean = (1000 - winrate); return ((lean >= 600) and M.cpKindAnswer(meta_kind) or ((lean <= 350) and M.cpKindIdentity(path) or ((lean >= 475) and M.cpKindAnswer(meta_kind) or M.cpKindIdentity(path)))) end)()))
+    return (function() if (meta_kind < 0) then return M.cpKindIdentity(path) else return (function() if (meta_share <= 400) then return M.cpKindIdentity(path) else return (function() local lean = (1000 - winrate); return (function() if (lean >= 600) then return M.cpKindAnswer(meta_kind) else return (function() if (lean <= 350) then return M.cpKindIdentity(path) else return (function() if (lean >= 475) then return M.cpKindAnswer(meta_kind) else return M.cpKindIdentity(path) end end)() end end)() end end)() end)() end end)() end end)()
 end
 
 function M.cpCardScore(kind, power, cost, legal, opp_kind, aggression)
-    return ((legal == 0) and (0 - 1) or (function() local beat = (((opp_kind >= 0) and (opp_kind == ((kind == 2) and 0 or (kind + 1)))) and 400 or 0); local read = ((opp_kind < 0) and 100 or 0); local tempo = (600 - (cost * 120)); local dmg = ((kind == 2) and (power // 3) or power); local aggr = ((dmg * aggression) // 100); return (beat + (read + (tempo + (aggr + (10 * power))))) end)())
+    return (function() if (legal == 0) then return (0 - 1) else return (function() local beat = (function() if ((opp_kind >= 0) and (opp_kind == (function() if (kind == 2) then return 0 else return (kind + 1) end end)())) then return 400 else return 0 end end)(); local read = (function() if (opp_kind < 0) then return 100 else return 0 end end)(); local tempo = (600 - (cost * 120)); local dmg = (function() if (kind == 2) then return (power // 3) else return power end end)(); local aggr = ((dmg * aggression) // 100); return (beat + (read + (tempo + (aggr + (10 * power))))) end)() end end)()
 end
 
 function M.cpPick(s0, s1, s2, s3, h0, h1, h2, h3)
-    return (function() local b01 = ((s1 > s0) and s1 or s0); local b012 = ((s2 > b01) and s2 or b01); local best = ((s3 > b012) and s3 or b012); return ((best <= 0) and (0 - 1) or ((s0 == best) and h0 or ((s1 == best) and h1 or ((s2 == best) and h2 or h3)))) end)()
+    return (function() local b01 = (function() if (s1 > s0) then return s1 else return s0 end end)(); local b012 = (function() if (s2 > b01) then return s2 else return b01 end end)(); local best = (function() if (s3 > b012) then return s3 else return b012 end end)(); return (function() if (best <= 0) then return (0 - 1) else return (function() if (s0 == best) then return h0 else return (function() if (s1 == best) then return h1 else return (function() if (s2 == best) then return h2 else return h3 end end)() end end)() end end)() end end)() end)()
 end
 
 function M.cpDeckCard(slot, path, winrate, meta_kind, meta_share)
-    return (function() local want = M.cpDeckKind(path, winrate, meta_kind, meta_share); local s = ((slot < 0) and 0 or ((slot >= 16) and 15 or slot)); local mix = ((s < 13) and want or M.cpKindAnswer(want)); local tier = (s - ((s // 3) * 3)); return ((mix * 3) + tier) end)()
+    return (function() local want = M.cpDeckKind(path, winrate, meta_kind, meta_share); local s = (function() if (slot < 0) then return 0 else return (function() if (slot >= 16) then return 15 else return slot end end)() end end)(); local mix = (function() if (s < 13) then return want else return M.cpKindAnswer(want) end end)(); local tier = (s - ((s // 3) * 3)); return ((mix * 3) + tier) end)()
 end
 
 return M
