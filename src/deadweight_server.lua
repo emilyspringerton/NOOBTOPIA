@@ -17,12 +17,25 @@ local RunService = game:GetService("RunService")
 local Ladder = require(script.Parent.deadweight_ladder)
 local Board = require(script.Parent.deadweight_board)
 local Room = require(script.Parent.deadweight_room)
+local Tour = require(script.Parent.deadweight_tournament)
 local UI = require(script.Parent.deadweight_ui)
 
 local M = {}
 
 M.TICK_SECONDS = 0.25
 M.CITIZENS = 3            -- noobs standing at the table, so a lone player always has somebody to play
+M.STAGE_MIN = 3           -- members needed before the world opens a bracket (3 fits a 4-slot stage with a bye)
+M.STAGE_COOLDOWN_MS = 60000   -- how long a finished stage keeps its champion on the banner
+
+-- Opens the next stage when the population can field one and nothing is running. Called from the tick, so a
+-- stage begins on the world's clock rather than on anybody's arrival.
+local function maybeStage(room, now)
+    local t = room.tournament
+    if t and not Tour.done(t) then return end
+    if t and Tour.done(t) and (now - (room.stageEndedMs or 0)) < M.STAGE_COOLDOWN_MS then return end
+    if room.ladder.count < M.STAGE_MIN then return end
+    if Room.startTournament(room, now, 4) then room.stageEndedMs = 0 end
+end
 
 -- A stable number for THIS server. Two servers get different populations; the same server restarts and gets the
 -- same tables, which is what makes a bug reproducible from a log line.
@@ -65,6 +78,7 @@ function M.start(position)
     end
 
     local ui = UI.build(position)
+    local stage = UI.buildStage()
 
     UI.bind(ui, function(player)
         local answer = Room.press(room, player.UserId, os.clock() * 1000)
@@ -88,6 +102,19 @@ function M.start(position)
         local now = os.clock() * 1000
         Room.tick(room, now)
 
+        -- the esports stage, on the world's own clock: opened when a bracket can be fielded, and its champion
+        -- left on the banner for a minute before the next one seeds
+        maybeStage(room, now)
+        local tour = room.tournament
+        if tour and Tour.done(tour) then
+            if not room.stageEndedMs or room.stageEndedMs == 0 then room.stageEndedMs = now end
+            UI.setBanner(stage, "CHAMPION  P" .. tostring(tour.champion))
+        elseif tour then
+            UI.setBanner(stage, string.format("THE PIT  \u2014  ROUND %d", tour.round))
+        else
+            UI.setBanner(stage, "THE PIT")
+        end
+
         -- one frame per player, from the same room state, so two players can never see two different tables
         local any = nil
         for _, player in ipairs(Players:GetPlayers()) do
@@ -98,7 +125,7 @@ function M.start(position)
         if any then UI.setAction(ui, any.waiting and "Play" or "Sit down") end
     end)
 
-    return { room = room, ui = ui, ladder = ladder, board = board, seed = seed }
+    return { room = room, ui = ui, stage = stage, ladder = ladder, board = board, seed = seed }
 end
 
 return M

@@ -176,6 +176,36 @@ do
     check(f.lines[1] ~= nil and f.lines[1]:find("1%.") ~= nil, "the board does not number its rows")
 end
 
+
+-- ---- 7. the esports stage, as the table sees it --------------------------------------------------
+
+do
+    local room = table_({ stageInterval = 1000 })
+    Room.join(room, PLAYER, true, 0)
+    Room.join(room, 501, false, 0)
+    Room.join(room, 502, false, 0)
+    Room.join(room, 503, false, 0)
+
+    check(Room.stage(room) == nil, "a stage exists before one was opened")
+    local t = Room.startTournament(room, 1000, 4)
+    check(t ~= nil, "a four-member table could not open a stage")
+    check(t ~= nil and t.byes == 0, "a full field recorded a bye")
+    local f = Room.frame(room, PLAYER)
+    check(f.tournament ~= nil and f.tournament.entrants == 4, "the frame does not describe the stage")
+    -- the player is the top seed (1000, no wins, lowest pid), so the fold puts them in the first match
+    check(f.tournament.match ~= nil and f.tournament.match.a == PLAYER,
+        "the stage did not seed the player into a live match")
+    check(f.prompt == "Press E to play your stage match", "the prompt does not offer the stage match: " .. f.prompt)
+    local answer = Room.press(room, PLAYER, 2000)
+    check(answer:match("^stage") ~= nil, "pressing did not play the stage match (got " .. tostring(answer) .. ")")
+    check(#room.tournament.log == 1, "the stage match did not reach the bracket log")
+    -- the other half of the round is two citizens, so the world may play it on its own clock -- but never a
+    -- match a person is in
+    local before = #room.tournament.log
+    Room.tick(room, 5000)
+    check(#room.tournament.log >= before, "ticking the world lost a stage result")
+end
+
 print(string.format("deadweight room (luau): %d checks, %d failed", checks, fails))
 if fails > 0 then os.exit(1) end
 print("deadweight room (luau): ALL PASS")

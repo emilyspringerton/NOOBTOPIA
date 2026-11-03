@@ -85,6 +85,17 @@ expression) and a named refusal for statement forms it cannot express — before
    same page, it has to publish the same schema — one contract, two producers, and a schema bump touches
    both repos at once.
 
+4. ~~A tournament stage.~~ **DONE (2026-11-03, founder: "can we make a stage for esports tournoments
+   inside of noobtopia").** `src/deadweight_tournament.lua` is a fold-seeded bracket over the ladder's own
+   rating order (`Board.rows`), with byes for a short field, every match played through
+   `Ladder.challenge`/`accept` so a stage result IS a ladder result, and draws advanced by seed order.
+   `deadweight_room` wires it (the world plays its own bracket but never a match a person is in; the
+   prompt's third branch is "Press E to play your stage match"), `deadweight_ui` builds the platform,
+   podiums, stands and banner, and `deadweight_server` opens the next bracket when three members exist
+   and leaves the champion up for a minute. `lua tests/deadweight_tournament_test.lua` — 56 checks.
+   *Not done:* it has never been rendered (Studio), it is best-of-one with no losers' bracket or
+   spectator camera, and the bracket is not published to WOTAN.
+
 ## Named risks
 
 - **Luau numbers are doubles.** Rules that rely on 32-bit integer overflow would differ here. The card ids,

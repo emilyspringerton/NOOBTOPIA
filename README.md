@@ -31,7 +31,8 @@ lua tests/deadweight_test.lua          # the rules + the citizen policy (287)
 lua tests/deadweight_match_test.lua    # whole matches vs SHANKPIT's C (903, 117 rounds)
 lua tests/deadweight_ladder_test.lua   # the ladder, script and all (107)
 lua tests/deadweight_board_test.lua    # the per-server leaderboard + its Elo (65)
-lua tests/deadweight_room_test.lua     # the table: seats, offers, one prompt (46)
+lua tests/deadweight_room_test.lua     # the table: seats, offers, one prompt (55)
+lua tests/deadweight_tournament_test.lua  # the esports stage: seeding, byes, champion (56)
 ```
 
 In Roblox: put `src/noobtopia.lua` in `ServerScriptService`, `src/ambient.lua`, `src/big_o_witness.lua` and
@@ -73,6 +74,7 @@ The host warns in the output if the RemoteEvent is missing, so the gap announces
 | `src/deadweight_ladder.lua` | challenges in all four directions, records, the meta, decks that re-craft |
 | `src/deadweight_board.lua` | the **per-server leaderboard** — a ranked view over the ladder's own ratings |
 | `src/deadweight_room.lua` | the table: seats, the offer cycle, ONE prompt, and the `frame()` a GUI draws |
+| `src/deadweight_tournament.lua` | **the esports stage**: a fold-seeded bracket over the ladder's ratings |
 | `src/deadweight_ui.lua` | the tabletop, the `ProximityPrompt`, and the server-written board panel |
 | `src/deadweight_server.lua` | the glue: one ladder + one table per server, the tick, a frame per player |
 | `src/generated/deadweight_rating.lua` | the shared rating, emitted from `PARENA/stdlib/deadweight/rating.prn` |
@@ -80,7 +82,8 @@ The host warns in the output if the RemoteEvent is missing, so the gap announces
 | `tests/deadweight_match_test.lua` | whole matches against the shared fixture (903 assertions, 117 rounds) |
 | `tests/deadweight_ladder_test.lua` | the ladder, executing the shared script (107 assertions) |
 | `tests/deadweight_board_test.lua` | the leaderboard, the zero-sum Elo and the per-server reset (65 assertions) |
-| `tests/deadweight_room_test.lua` | the table's seats, offers and single prompt (46 assertions) |
+| `tests/deadweight_room_test.lua` | the table's seats, offers, single prompt and stage wiring (55 assertions) |
+| `tests/deadweight_tournament_test.lua` | the stage: seeding, byes, draws, champion (56 assertions) |
 | `docs/DEADWEIGHT_PORT.md` | what is ported and what is not, in order |
 
 ## DEADWEIGHT (2026-11-03)
@@ -122,7 +125,14 @@ carried by the save), so the board is a view rather than a second copy of the nu
 C ladder carries the same number from the same `.prn` (`dw_rating.c`), which is the only way two
 worlds print the same table.
 
-What is NOT here yet, deliberately and in order: **none of the three Roblox files has ever run** (no
+**And a stage to play it on**: `src/deadweight_tournament.lua` seeds a bracket from the ladder's own
+rating, gives a short field byes instead of a smaller bracket, and plays every match through the
+same `challenge`/`accept` path a friendly game takes — so a stage result moves both ratings and
+lands on the ticker. The world plays its own bracket on its own clock but never a match a person
+is in (that one waits for the prompt), and a drawn match advances the higher seed, because a
+bracket needs a body. `src/deadweight_ui.lua` builds the platform, podiums, stands and banner.
+
+What is NOT here yet, deliberately and in order: **none of the Roblox files has ever run** (no
 Studio, no place file, no `luau` on this box — written and reviewed, never executed), no DataStore (a
 per-server board resetting with the server is the accepted design), publishing this board in the
 schema WOTAN reads, and drawing the match itself on the table.
@@ -143,7 +153,7 @@ schema WOTAN reads, and drawing the match itself on the table.
 ## Honest status
 
 DEADWEIGHT's rules, policy, sequencer, ladder, leaderboard and the Roblox table are generated and
-executed here (287 + 903 + 107 + 65 + 46 checks under a real Lua, the match and ladder halves against
+executed here (287 + 903 + 107 + 65 + 55 + 56 checks under a real Lua, the match and ladder halves against
 fixtures SHANKPIT's C asserts too), but the game is not *playable* here yet: **the three Roblox files
 have never run** — they need Studio — and the leaderboard is not published anywhere outside its own
 server. `docs/DEADWEIGHT_PORT.md` says so phase by phase.

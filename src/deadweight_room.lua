@@ -19,12 +19,14 @@
 
 local Ladder = require("deadweight_ladder")
 local Board = require("deadweight_board")
+local Tour = require("deadweight_tournament")
 
 local M = {}
 
 M.MAX_SEATS = 4
 M.OFFER_INTERVAL_MS = 12000   -- how often a citizen at the table asks a person to play
 M.LOG_LINES = 3               -- results kept on the frame
+M.STAGE_INTERVAL_MS = 4000    -- how often the world plays a stage match nobody is in
 
 local function norm(now)
     -- Luau has no os.clock in a server tick context and the host passes milliseconds; be forgiving about
@@ -42,6 +44,9 @@ function M.new(ladder, board, opts)
         pids = {},              -- pid -> seat index
         lastOfferMs = 0,
         offerInterval = opts.offerInterval or M.OFFER_INTERVAL_MS,
+        tournament = nil,               -- the esports stage, when one is running
+        lastStageMs = 0,
+        stageInterval = opts.stageInterval or M.STAGE_INTERVAL_MS,
         log = {},
         joined = 0,
     }
@@ -152,6 +157,19 @@ function M.press(room, pid, now)
         note(room, "played", now)
         return "played:" .. tostring(winner)
     end
+    -- THE STAGE comes before a friendly challenge: if the bracket is waiting on you, that is the game
+    local stage = room.tournament
+    if stage and not Tour.done(stage) then
+        local m = Tour.next(stage)
+        if m and (m.a == pid or m.b == pid) then
+            local advanced = Tour.playNext(stage, now)
+            if advanced then
+                note(room, "stage", now)
+                return "stage:" .. tostring(advanced)
+            end
+        end
+    end
+
     local rival = M.rivalFor(room, pid)
     if not rival then return "nobody" end
     if M.challengeTo(room, pid, rival, now) < 0 then return "busy" end
@@ -201,10 +219,45 @@ local function offerRound(room, now)
     return nil
 end
 
+-- Opens a stage: the bracket is seeded from the ladder the moment it is called, so the field is the
+-- population as it stands rather than a snapshot somebody took earlier.
+function M.startTournament(room, now, size)
+    local t = Tour.new(room.ladder, room.board, { size = size or 4 })
+    if not Tour.seed(t, norm(now)) then return nil end
+    room.tournament = t
+    room.lastStageMs = norm(now)
+    note(room, "bracket", norm(now))
+    return t
+end
+
+-- The stage as a screen needs it, or nil when there is no stage.
+function M.stage(room)
+    if not room.tournament then return nil end
+    return Tour.frame(room.tournament)
+end
+
 function M.tick(room, now)
     now = norm(now)
     Ladder.tick(room.ladder, now)     -- expiry, and citizens starting games among themselves
     offerRound(room, now)
+
+    -- the world plays its own bracket, on its own clock -- but never a match a PERSON is in: that one waits
+    -- for the prompt, because a stage game resolved behind the player's back is a game they did not play
+    local t = room.tournament
+    if t and not Tour.done(t) then
+        local m = Tour.next(t)
+        if m then
+            local ai = Ladder.memberForPid(room.ladder, m.a)
+            local bi = Ladder.memberForPid(room.ladder, m.b)
+            local human = (ai >= 0 and room.ladder.members[ai].isPlayer == 1)
+                or (bi >= 0 and room.ladder.members[bi].isPlayer == 1)
+            if not human and (room.lastStageMs == 0 or (now - room.lastStageMs) >= room.stageInterval) then
+                Tour.playNext(t, now)
+                room.lastStageMs = now
+                note(room, "stage", now)
+            end
+        end
+    end
 end
 
 -- EVERYTHING A SCREEN NEEDS, as plain values. The host turns these into TextLabels; it never decides anything.
@@ -216,12 +269,15 @@ function M.frame(room, pid)
         lines[#lines + 1] = string.format("%d. %-4s %4d  %d-%d", row.rank, who, row.rating, row.wins, row.games)
     end
     local waiting = M.pending(room, pid)
+    local stage = M.stage(room)
     local prompt
     if not room.pids[pid] then
         prompt = "Press E to sit down"
     elseif waiting then
         local from = waiting.from
         prompt = "Press E to play P" .. tostring(from)
+    elseif stage and stage.match and (stage.match.a == pid or stage.match.b == pid) then
+        prompt = "Press E to play your stage match"
     else
         local rival = M.rivalFor(room, pid)
         prompt = rival and ("Press E to challenge P" .. tostring(rival)) or "Nobody here to play"
@@ -238,6 +294,7 @@ function M.frame(room, pid)
         waiting = waiting ~= nil,
         lines = lines,
         log = ticker,
+        tournament = stage,
         you = (function()
             for _, row in ipairs(rows) do if row.pid == pid then return row end end
             return nil

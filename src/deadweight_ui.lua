@@ -53,6 +53,43 @@ function M.build(position)
     return { table = top, prompt = prompt, guis = {} }
 end
 
+-- THE STAGE: a raised platform, two podiums, a banner, and stands around it. Built once, at start; the
+-- banner's text is rewritten each tick from the tournament's own frame, so what the crowd reads is what the
+-- bracket says rather than a second opinion.
+function M.buildStage(position)
+    local at = position or CFrame.new(0, 3, -70)
+    local deck = makePart("DeadweightStage", Vector3.new(26, 2, 20), at, WOOD)
+
+    local left = makePart("DeadweightPodiumA", Vector3.new(3, 3, 3), at * CFrame.new(-6, 2.5, 0), INK)
+    local right = makePart("DeadweightPodiumB", Vector3.new(3, 3, 3), at * CFrame.new(6, 2.5, 0), INK)
+
+    -- the stands: three risers a side, so a crowd has somewhere to be that is not the playfield
+    for i = 1, 3 do
+        makePart("DeadweightStandL" .. i, Vector3.new(3, 1, 18), at * CFrame.new(-15 - i * 3, 1 + i, 0), WOOD)
+        makePart("DeadweightStandR" .. i, Vector3.new(3, 1, 18), at * CFrame.new(15 + i * 3, 1 + i, 0), WOOD)
+    end
+
+    local banner = makePart("DeadweightBanner", Vector3.new(22, 5, 1), at * CFrame.new(0, 7, -9), INK)
+    local surface = Instance.new("SurfaceGui")
+    surface.Face = Enum.NormalId.Front
+    surface.CanvasSize = Vector2.new(880, 200)
+    surface.Parent = banner
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = PAPER
+    label.Font = Enum.Font.Code
+    label.TextScaled = true
+    label.Text = "THE PIT"
+    label.Parent = surface
+
+    return { stage = deck, podiums = { left, right }, banner = banner, label = label }
+end
+
+function M.setBanner(stage, text)
+    if stage and stage.label and stage.label.Parent then stage.label.Text = text end
+end
+
 local function guiFor(ui, player)
     if ui.guis[player] then return ui.guis[player] end
 
@@ -117,6 +154,20 @@ function M.render(ui, player, frame)
         lines[#lines + 1] = ""
         for _, line in ipairs(frame.log) do lines[#lines + 1] = "-- " .. line end
     end
+    local t = frame.tournament
+    if t then
+        lines[#lines + 1] = ""
+        lines[#lines + 1] = string.format("%s  round %d/%d  (%d entrants%s)", t.name, t.round, t.rounds, t.entrants,
+            t.byes > 0 and (", " .. t.byes .. " bye" .. (t.byes == 1 and "" or "s")) or "")
+        if t.champion then
+            lines[#lines + 1] = "CHAMPION  P" .. tostring(t.champion)
+        elseif t.match then
+            lines[#lines + 1] = "on stage: P" .. tostring(t.match.a) .. " vs P" .. tostring(t.match.b)
+        end
+        for i = math.max(1, #t.lines - 2), #t.lines do
+            lines[#lines + 1] = "  " .. t.lines[i]
+        end
+    end
     entry.body.Text = table.concat(lines, "\n")
 end
 
@@ -128,6 +179,13 @@ function M.forget(ui, player)
     local entry = ui.guis[player]
     if entry and entry.gui then entry.gui:Destroy() end
     ui.guis[player] = nil
+end
+
+function M.destroyStage(stage)
+    if not stage then return end
+    if stage.banner and stage.banner.Parent then stage.banner:Destroy() end
+    for _, p in ipairs(stage.podiums or {}) do if p.Parent then p:Destroy() end end
+    if stage.stage and stage.stage.Parent then stage.stage:Destroy() end
 end
 
 function M.destroy(ui)
