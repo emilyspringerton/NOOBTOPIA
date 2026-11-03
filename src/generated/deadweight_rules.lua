@@ -3,6 +3,15 @@
 
 local M = {}
 
+-- `a / b` in PARENA is C's integer division (truncation toward zero), not Lua's `//`
+-- (floor). They disagree on every negative dividend, so the emitter routes `/` here
+-- instead of pretending the two are the same operator.
+local function __idiv(a, b)
+    local q = a // b
+    if q < 0 and q * b ~= a then q = q + 1 end
+    return q
+end
+
 function M.startHull()
     return 20
 end
@@ -40,11 +49,11 @@ function M.kindChunk(c)
 end
 
 function M.mod3(x)
-    return (x - ((x // 3) * 3))
+    return (x - (__idiv(x, 3) * 3))
 end
 
 function M.cardKind(id)
-    return (function() if (id < 9) then return (id // 3) else return M.mod3((M.kindChunk((id // 16)) // M.pow3((id - ((id // 16) * 16))))) end end)()
+    return (function() if (id < 9) then return __idiv(id, 3) else return M.mod3(__idiv(M.kindChunk(__idiv(id, 16)), M.pow3((id - (__idiv(id, 16) * 16))))) end end)()
 end
 
 function M.pow6(n)
@@ -56,11 +65,11 @@ function M.kwChunk(c)
 end
 
 function M.mod6(x)
-    return (x - ((x // 6) * 6))
+    return (x - (__idiv(x, 6) * 6))
 end
 
 function M.cardKeyword(id)
-    return (function() if (id < 0) then return 0 else return M.mod6((M.kwChunk((id // 10)) // M.pow6((id - ((id // 10) * 10))))) end end)()
+    return (function() if (id < 0) then return 0 else return M.mod6(__idiv(M.kwChunk(__idiv(id, 10)), M.pow6((id - (__idiv(id, 10) * 10))))) end end)()
 end
 
 function M.tierOfCost(c)
@@ -68,7 +77,7 @@ function M.tierOfCost(c)
 end
 
 function M.cardTier(id)
-    return (function() if (id < 9) then return (id - ((id // 3) * 3)) else return M.tierOfCost(M.cardCost(id)) end end)()
+    return (function() if (id < 9) then return (id - (__idiv(id, 3) * 3)) else return M.tierOfCost(M.cardCost(id)) end end)()
 end
 
 function M.costLo(id)
@@ -124,7 +133,7 @@ function M.isLegalPlay(id, energy, vault)
 end
 
 function M.damageDealt(a, b)
-    return (function() if (a < 0) then return 0 else return (function() if (b < 0) then return (function() if (M.cardKind(a) == 2) then return 0 else return M.cardPower(a) end end)() else return (function() if (M.cardKind(a) == M.cardKind(b)) then return (function() if (M.cardKind(a) == 0) then return M.cardPower(a) else return (function() if (M.cardKind(a) == 1) then return (M.cardPower(a) // 2) else return 0 end end)() end end)() else return (function() if M.kindBeats(M.cardKind(a), M.cardKind(b)) then return M.cardPower(a) else return 0 end end)() end end)() end end)() end end)()
+    return (function() if (a < 0) then return 0 else return (function() if (b < 0) then return (function() if (M.cardKind(a) == 2) then return 0 else return M.cardPower(a) end end)() else return (function() if (M.cardKind(a) == M.cardKind(b)) then return (function() if (M.cardKind(a) == 0) then return M.cardPower(a) else return (function() if (M.cardKind(a) == 1) then return __idiv(M.cardPower(a), 2) else return 0 end end)() end end)() else return (function() if M.kindBeats(M.cardKind(a), M.cardKind(b)) then return M.cardPower(a) else return 0 end end)() end end)() end end)() end end)()
 end
 
 function M.roundStartEnergy(e)
@@ -240,23 +249,23 @@ function M.cardFxB(id)
 end
 
 function M.fxCh(x)
-    return (x // 10000000)
+    return __idiv(x, 10000000)
 end
 
 function M.fxNn(x)
-    return ((x // 100000) - ((x // 10000000) * 100))
+    return (__idiv(x, 100000) - (__idiv(x, 10000000) * 100))
 end
 
 function M.fxPp(x)
-    return ((x // 1000) - ((x // 100000) * 100))
+    return (__idiv(x, 1000) - (__idiv(x, 100000) * 100))
 end
 
 function M.fxM(x)
-    return ((x // 100) - ((x // 1000) * 10))
+    return (__idiv(x, 100) - (__idiv(x, 1000) * 10))
 end
 
 function M.fxAa(x)
-    return (x - ((x // 100) * 100))
+    return (x - (__idiv(x, 100) * 100))
 end
 
 function M.fxPhase(ch)
@@ -264,11 +273,11 @@ function M.fxPhase(ch)
 end
 
 function M.fxCondOk(x, dealt, taken, mk, ok, oc, mh, oh, el, oe, mv, ov, rnd, roll)
-    return (function() if (M.fxNn(x) == 0) then return (x >= 0) else return (function() if (M.fxNn(x) == 1) then return ((dealt > 0) and (((ok >= 0) and M.kindBeats(mk, ok)) or ((ok < 0) and (not ((mk == 2)))))) else return (function() if (M.fxNn(x) == 2) then return (taken > 0) else return (function() if (M.fxNn(x) == 3) then return ((ok >= 0) and M.kindBeats(ok, mk)) else return (function() if (M.fxNn(x) == 4) then return (ok >= 0) else return (function() if (M.fxNn(x) == 5) then return (ok < 0) else return (function() if (M.fxNn(x) == 6) then return (ok == M.fxPp(x)) else return (function() if (M.fxNn(x) == 7) then return ((ok >= 0) and (oc >= M.fxPp(x))) else return (function() if (M.fxNn(x) == 8) then return (mh <= M.fxPp(x)) else return (function() if (M.fxNn(x) == 9) then return (oh <= M.fxPp(x)) else return (function() if (M.fxNn(x) == 10) then return (el >= M.fxPp(x)) else return (function() if (M.fxNn(x) == 11) then return (oe >= M.fxPp(x)) else return (function() if (M.fxNn(x) == 12) then return (mv >= M.fxPp(x)) else return (function() if (M.fxNn(x) == 13) then return (mv < M.fxPp(x)) else return (function() if (M.fxNn(x) == 14) then return (ov < M.fxPp(x)) else return (function() if (M.fxNn(x) == 15) then return ((dealt <= 0) and (taken <= 0)) else return (function() if (M.fxNn(x) == 16) then return (taken >= M.fxPp(x)) else return (function() if (M.fxNn(x) == 17) then return ((M.fxPp(x) > 0) and ((rnd - ((rnd // M.fxPp(x)) * M.fxPp(x))) == 0)) else return (function() if (M.fxNn(x) == 18) then return (roll < M.fxPp(x)) else return (function() if (M.fxNn(x) == 19) then return (dealt >= M.fxPp(x)) else return (function() if (M.fxNn(x) == 20) then return (not ((ok == M.fxPp(x)))) else return (roll >= M.fxPp(x)) end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)()
+    return (function() if (M.fxNn(x) == 0) then return (x >= 0) else return (function() if (M.fxNn(x) == 1) then return ((dealt > 0) and (((ok >= 0) and M.kindBeats(mk, ok)) or ((ok < 0) and (not ((mk == 2)))))) else return (function() if (M.fxNn(x) == 2) then return (taken > 0) else return (function() if (M.fxNn(x) == 3) then return ((ok >= 0) and M.kindBeats(ok, mk)) else return (function() if (M.fxNn(x) == 4) then return (ok >= 0) else return (function() if (M.fxNn(x) == 5) then return (ok < 0) else return (function() if (M.fxNn(x) == 6) then return (ok == M.fxPp(x)) else return (function() if (M.fxNn(x) == 7) then return ((ok >= 0) and (oc >= M.fxPp(x))) else return (function() if (M.fxNn(x) == 8) then return (mh <= M.fxPp(x)) else return (function() if (M.fxNn(x) == 9) then return (oh <= M.fxPp(x)) else return (function() if (M.fxNn(x) == 10) then return (el >= M.fxPp(x)) else return (function() if (M.fxNn(x) == 11) then return (oe >= M.fxPp(x)) else return (function() if (M.fxNn(x) == 12) then return (mv >= M.fxPp(x)) else return (function() if (M.fxNn(x) == 13) then return (mv < M.fxPp(x)) else return (function() if (M.fxNn(x) == 14) then return (ov < M.fxPp(x)) else return (function() if (M.fxNn(x) == 15) then return ((dealt <= 0) and (taken <= 0)) else return (function() if (M.fxNn(x) == 16) then return (taken >= M.fxPp(x)) else return (function() if (M.fxNn(x) == 17) then return ((M.fxPp(x) > 0) and ((rnd - (__idiv(rnd, M.fxPp(x)) * M.fxPp(x))) == 0)) else return (function() if (M.fxNn(x) == 18) then return (roll < M.fxPp(x)) else return (function() if (M.fxNn(x) == 19) then return (dealt >= M.fxPp(x)) else return (function() if (M.fxNn(x) == 20) then return (not ((ok == M.fxPp(x)))) else return (roll >= M.fxPp(x)) end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.fxScale(x, dealt, taken, oc, mh, el, oe, mv, rnd)
-    return (function() if (M.fxM(x) == 0) then return M.fxAa(x) else return (function() if (M.fxM(x) == 1) then return (M.fxAa(x) * oe) else return (function() if (M.fxM(x) == 2) then return (M.fxAa(x) * oc) else return (function() if (M.fxM(x) == 3) then return ((M.fxAa(x) * rnd) // 2) else return (function() if (M.fxM(x) == 4) then return (M.fxAa(x) * el) else return (function() if (M.fxM(x) == 5) then return (function() if (taken < M.fxAa(x)) then return taken else return M.fxAa(x) end end)() else return (function() if (M.fxM(x) == 6) then return ((taken * M.fxAa(x)) // 10) else return (function() if (M.fxM(x) == 7) then return ((dealt * M.fxAa(x)) // 10) else return (function() if (M.fxM(x) == 8) then return ((M.fxAa(x) * (20 - mh)) // 4) else return ((M.fxAa(x) * (function() if (mv < 0) then return 0 else return mv end end)()) // 2) end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)()
+    return (function() if (M.fxM(x) == 0) then return M.fxAa(x) else return (function() if (M.fxM(x) == 1) then return (M.fxAa(x) * oe) else return (function() if (M.fxM(x) == 2) then return (M.fxAa(x) * oc) else return (function() if (M.fxM(x) == 3) then return __idiv((M.fxAa(x) * rnd), 2) else return (function() if (M.fxM(x) == 4) then return (M.fxAa(x) * el) else return (function() if (M.fxM(x) == 5) then return (function() if (taken < M.fxAa(x)) then return taken else return M.fxAa(x) end end)() else return (function() if (M.fxM(x) == 6) then return __idiv((taken * M.fxAa(x)), 10) else return (function() if (M.fxM(x) == 7) then return __idiv((dealt * M.fxAa(x)), 10) else return (function() if (M.fxM(x) == 8) then return __idiv((M.fxAa(x) * (20 - mh)), 4) else return __idiv((M.fxAa(x) * (function() if (mv < 0) then return 0 else return mv end end)()), 2) end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)() end end)()
 end
 
 function M.fxAmount(x, dealt, taken, mk, ok, oc, mh, oh, el, oe, mv, ov, rnd, roll)

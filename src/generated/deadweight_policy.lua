@@ -3,8 +3,17 @@
 
 local M = {}
 
+-- `a / b` in PARENA is C's integer division (truncation toward zero), not Lua's `//`
+-- (floor). They disagree on every negative dividend, so the emitter routes `/` here
+-- instead of pretending the two are the same operator.
+local function __idiv(a, b)
+    local q = a // b
+    if q < 0 and q * b ~= a then q = q + 1 end
+    return q
+end
+
 function M.cpWinratePermille(wins, games)
-    return (function() if (games <= 0) then return 500 else return (function() local w = (function() if (wins < 0) then return 0 else return wins end end)(); local g = (function() if (w < games) then return games else return w end end)(); return (((w + 1) * 1000) // (g + 2)) end)() end end)()
+    return (function() if (games <= 0) then return 500 else return (function() local w = (function() if (wins < 0) then return 0 else return wins end end)(); local g = (function() if (w < games) then return games else return w end end)(); return __idiv(((w + 1) * 1000), (g + 2)) end)() end end)()
 end
 
 function M.cpKindIdentity(path)
@@ -20,7 +29,7 @@ function M.cpDeckKind(path, winrate, meta_kind, meta_share)
 end
 
 function M.cpCardScore(kind, power, cost, legal, opp_kind, aggression)
-    return (function() if (legal == 0) then return (0 - 1) else return (function() local beat = (function() if ((opp_kind >= 0) and (opp_kind == (function() if (kind == 2) then return 0 else return (kind + 1) end end)())) then return 400 else return 0 end end)(); local read = (function() if (opp_kind < 0) then return 100 else return 0 end end)(); local tempo = (600 - (cost * 120)); local dmg = (function() if (kind == 2) then return (power // 3) else return power end end)(); local aggr = ((dmg * aggression) // 100); return (beat + (read + (tempo + (aggr + (10 * power))))) end)() end end)()
+    return (function() if (legal == 0) then return (0 - 1) else return (function() local beat = (function() if ((opp_kind >= 0) and (opp_kind == (function() if (kind == 2) then return 0 else return (kind + 1) end end)())) then return 400 else return 0 end end)(); local read = (function() if (opp_kind < 0) then return 100 else return 0 end end)(); local tempo = (600 - (cost * 120)); local dmg = (function() if (kind == 2) then return __idiv(power, 3) else return power end end)(); local aggr = __idiv((dmg * aggression), 100); return (beat + (read + (tempo + (aggr + (10 * power))))) end)() end end)()
 end
 
 function M.cpPick(s0, s1, s2, s3, h0, h1, h2, h3)
@@ -28,7 +37,7 @@ function M.cpPick(s0, s1, s2, s3, h0, h1, h2, h3)
 end
 
 function M.cpDeckCard(slot, path, winrate, meta_kind, meta_share)
-    return (function() local want = M.cpDeckKind(path, winrate, meta_kind, meta_share); local s = (function() if (slot < 0) then return 0 else return (function() if (slot >= 16) then return 15 else return slot end end)() end end)(); local mix = (function() if (s < 13) then return want else return M.cpKindAnswer(want) end end)(); local tier = (s - ((s // 3) * 3)); return ((mix * 3) + tier) end)()
+    return (function() local want = M.cpDeckKind(path, winrate, meta_kind, meta_share); local s = (function() if (slot < 0) then return 0 else return (function() if (slot >= 16) then return 15 else return slot end end)() end end)(); local mix = (function() if (s < 13) then return want else return M.cpKindAnswer(want) end end)(); local tier = (s - (__idiv(s, 3) * 3)); return ((mix * 3) + tier) end)()
 end
 
 return M

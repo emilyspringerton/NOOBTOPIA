@@ -41,7 +41,24 @@ expression) and a named refusal for statement forms it cannot express — before
      and on a fresh match, four zero-filled slots, so round 1 played card 0, a card neither seat held.
      Both sequencers now split a round into BEGIN (clock, economy, deal, DISABLE) and FINISH, with the
      policy choosing in between. The C fix is in `dw_match.c`.
-2. **The ladder.** `dw_ladder.c` owns challenges in four directions, records, the meta tally and decks that
+2. ~~The ladder.~~ **DONE (2026-11-03).** `src/deadweight_ladder.lua` ports `dw_ladder.c`: one
+   `challenge` call for all four directions, the 45-second challenge book with its expiry sweep, records,
+   the population's meta, decks re-crafted after every match, and `serialize`/`deserialize` as plain
+   tables (a DataStore's shape rather than SHANKPIT's text file). `PARENA/stdlib/deadweight/
+   ladder_parity.txt` carries the SCRIPT as well as the outcomes and both worlds execute it, so the
+   fixture cannot drift by one side re-typing the scenario: `make test-dw-ladder-parity` and
+   `lua tests/deadweight_ladder_test.lua` (107 checks). Two design facts worth keeping:
+   * a member that has NOT played since the meta moved keeps the deck it was dealt — the same staleness
+     the C ladder has — so the round-trip asserts byte-identical decks for the members who played and
+     determinism of the crafting function for everyone;
+   * `dw_ladder_tick`'s citizen-initiated challenges draw from the ladder's own LCG in a fixed order, so
+     the script that exercises them is deterministic and is pinned here.
+2b. ~~The Roblox-facing consumer (the leaderboard).~~ **DONE (2026-11-03)** — `src/deadweight_board.lua`:
+   a per-server board ranked by `PARENA/stdlib/deadweight/rating.prn` (emitted to Luau, not copied),
+   resetting with the server, with `rows`/`rowFor`/`snapshot` and a bounded match ticker. It is the
+   CONSUMER half of the internet-of-SHANKPIT shim in the shape Roblox can actually use — the founder's
+   own "per server and reset its fine", and "we dont need iduna i guess just the leaderboard for now".
+3. **The ladder.** (superseded by 2 above — kept so the numbering below still reads) `dw_ladder.c` owns challenges in four directions, records, the meta tally and decks that
    re-craft from both. In Roblox this is DataStore-shaped rather than process-shaped, and the honest
    question is whether a citizen's record should be per-place-session or persistent across places. Decide it
    before writing it; the deck crafting itself is already here (the policy).

@@ -27,7 +27,10 @@ scripts/gen_deadweight.sh
 # tests (plain Lua, no Roblox needed)
 lua tests/ambient_test.lua
 lua tests/walk_test.lua
-lua tests/deadweight_test.lua
+lua tests/deadweight_test.lua          # the rules + the citizen policy (287)
+lua tests/deadweight_match_test.lua    # whole matches vs SHANKPIT's C (903, 117 rounds)
+lua tests/deadweight_ladder_test.lua   # the ladder, script and all (107)
+lua tests/deadweight_board_test.lua    # the per-server leaderboard + its Elo (370)
 ```
 
 In Roblox: put `src/noobtopia.lua` in `ServerScriptService`, `src/ambient.lua`, `src/big_o_witness.lua` and
@@ -66,8 +69,13 @@ The host warns in the output if the RemoteEvent is missing, so the gap announces
 | `src/generated/deadweight_rules.lua` | DEADWEIGHT's 105-card rules, emitted from `PARENA/stdlib/deadweight/card_rules.prn` |
 | `src/generated/deadweight_policy.lua` | the citizen policy (win rate, the answer to a meta, deck crafting) |
 | `src/deadweight_game.lua` | the **sequencer** — a match, round by round; ported from SHANKPIT's `dw_match.c` |
+| `src/deadweight_ladder.lua` | challenges in all four directions, records, the meta, decks that re-craft |
+| `src/deadweight_board.lua` | the **per-server leaderboard** and its Elo (the Roblox-side consumer) |
+| `src/generated/deadweight_rating.lua` | the shared rating, emitted from `PARENA/stdlib/deadweight/rating.prn` |
 | `tests/deadweight_test.lua` | hand-derived parity checks against those two modules (287 assertions) |
 | `tests/deadweight_match_test.lua` | whole matches against the shared fixture (903 assertions, 117 rounds) |
+| `tests/deadweight_ladder_test.lua` | the ladder, executing the shared script (107 assertions) |
+| `tests/deadweight_board_test.lua` | the leaderboard and its Elo (370 assertions) |
 | `docs/DEADWEIGHT_PORT.md` | what is ported and what is not, in order |
 
 ## DEADWEIGHT (2026-11-03)
@@ -90,10 +98,19 @@ assert the same rows (117 rounds, every card, hull, energy and credit). Writing 
 each world, both fixed: the emitter's `if` lowering mangled Bool ladders, and SHANKPIT's policy chose
 its card before the round dealt.
 
-What is NOT here yet, deliberately and in order: the **ladder** (challenges in four directions, records,
-the meta tally), the **Roblox surface** (a Noob at a table, a `ProximityPrompt`, a board GUI), and
-publishing to the same schema WOTAN reads. `docs/DEADWEIGHT_PORT.md` has the phases and the two real
-risks (Luau's doubles, and 5.4 not being Luau).
+**The ladder and a leaderboard are here too** (same day): `src/deadweight_ladder.lua` is the port of
+SHANKPIT's `dw_ladder.c` — one `challenge` call for all four directions, a 45-second challenge TTL,
+records, the population's meta, and decks that re-craft after every match — pinned the same way, by a
+fixture that carries the *script* as well as the outcomes so both worlds execute the same operations
+(107 checks). `src/deadweight_board.lua` is the Roblox-side consumer: **a per-server leaderboard** that
+ranks the ladder by a rating and resets with the server (the founder's own "per server and reset its
+fine"), with no IDUNA and no HTTP — the number is `PARENA/stdlib/deadweight/rating.prn`, emitted here
+rather than copied, so SHANKPIT and Roblox print the same table for the same server.
+
+What is NOT here yet, deliberately and in order: the **Roblox surface** (a Noob at a table, a
+`ProximityPrompt`, a board GUI — this is the data behind one, nothing draws it), publishing this board
+in the schema WOTAN reads, and a rating on the C side (the `.prn` is emitted to Luau only so far).
+`docs/DEADWEIGHT_PORT.md` has the phases and the two real risks (Luau's doubles, and 5.4 not being Luau).
 | `data/noob_lines.lua` | the words. **Source of truth** for every line, in both worlds |
 | `tests/ambient_test.lua` | plain-Lua test of the rules, the data and the witness rule |
 | `tests/walk_test.lua` | plain-Lua test of the walk rule against the shared `walk_parity.txt` vectors |
@@ -109,9 +126,11 @@ risks (Luau's doubles, and 5.4 not being Luau).
 
 ## Honest status
 
-DEADWEIGHT's rules, policy **and sequencer** are generated and executed here (287 + 903 checks under a real
-Lua, the match half against vectors SHANKPIT's C asserts too), but the game is not *playable* here yet:
-no ladder, no Roblox surface, nothing drawn. `docs/DEADWEIGHT_PORT.md` says so phase by phase.
+DEADWEIGHT's rules, policy, sequencer, ladder and leaderboard are generated and executed here
+(287 + 903 + 107 + 370 checks under a real Lua, the match and ladder halves against fixtures SHANKPIT's
+C asserts too), but the game is not *playable* here yet: **nothing is drawn** — no table, no prompt, no
+board GUI — and the leaderboard is not published anywhere outside its own server.
+`docs/DEADWEIGHT_PORT.md` says so phase by phase.
 
 The Luau modules are **executed** — `lua tests/ambient_test.lua` and `lua tests/walk_test.lua` run clean on Lua 5.4,
 and the walk half is pinned against parity vectors the C asserts too. That is plain Lua, not Luau: 5.4 has 64-bit
