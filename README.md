@@ -20,9 +20,14 @@ for SHANKPIT, to Luau for this repo. Nothing here restates a threshold.
 scripts/gen_rules.sh
 # -> src/generated/ambient_life.lua, src/generated/arena_rules.lua   (committed; regenerate after editing a .prn)
 
+# ...and DEADWEIGHT's card rules + citizen policy, the same two .prn SHANKPIT compiles to C
+scripts/gen_deadweight.sh
+# -> src/generated/deadweight_rules.lua, src/generated/deadweight_policy.lua
+
 # tests (plain Lua, no Roblox needed)
 lua tests/ambient_test.lua
 lua tests/walk_test.lua
+lua tests/deadweight_test.lua
 ```
 
 In Roblox: put `src/noobtopia.lua` in `ServerScriptService`, `src/ambient.lua`, `src/big_o_witness.lua` and
@@ -58,6 +63,26 @@ The host warns in the output if the RemoteEvent is missing, so the gap announces
 | `src/wander.lua` | where a noob drifts, and when; same integer integration SHANKPIT's C host runs |
 | `src/big_o_witness.lua` | BIG_O's witness/decorum rule, pure |
 | `src/generated/*.lua` | **generated** from PARENA — never edit by hand |
+| `src/generated/deadweight_rules.lua` | DEADWEIGHT's 105-card rules, emitted from `PARENA/stdlib/deadweight/card_rules.prn` |
+| `src/generated/deadweight_policy.lua` | the citizen policy (win rate, the answer to a meta, deck crafting) |
+| `tests/deadweight_test.lua` | hand-derived parity checks against those two modules (287 assertions) |
+| `docs/DEADWEIGHT_PORT.md` | what is ported and what is not, in order |
+
+## DEADWEIGHT (2026-11-03)
+
+SHANKPIT plays DEADWEIGHT — a card game where citizens challenge each other, challenge you, and build their
+own decks from their win rate and the current meta. **The rules are not being rewritten for Roblox.** The
+same two `.prn` files that SHANKPIT emits to C are emitted here to Luau by `scripts/gen_deadweight.sh`:
+105 cards, the kind triangle, every cost/power/credit, the packed effect engine, and the policy that picks
+cards and crafts decks. `lua tests/deadweight_test.lua` runs the real numbers (287 checks) and pins the same
+values SHANKPIT's `make test-deadweight` pins — start hull 20 / energy 2 / credits 3, four-card hands, 100
+rounds, the base line's tier→cost table, the triangle's antisymmetry, and the policy's 500/666 win-rate
+smoothing.
+
+What is NOT here yet, deliberately and in order: the **sequencer** (the round-by-round game loop lives in
+`SHANKPIT/packages/simulation/dw_match.c`), the **ladder** (challenges, records, meta), the Roblox surface
+(a table, a prompt, a board GUI), and publishing to the same schema WOTAN reads. `docs/DEADWEIGHT_PORT.md`
+has the phases, the parity-vector plan, and the two real risks (Luau's doubles, and 5.4 not being Luau).
 | `data/noob_lines.lua` | the words. **Source of truth** for every line, in both worlds |
 | `tests/ambient_test.lua` | plain-Lua test of the rules, the data and the witness rule |
 | `tests/walk_test.lua` | plain-Lua test of the walk rule against the shared `walk_parity.txt` vectors |
@@ -72,6 +97,9 @@ The host warns in the output if the RemoteEvent is missing, so the gap announces
   `PARENA/stdlib/noobtopia/walk_parity.txt` too — both test suites assert it.
 
 ## Honest status
+
+DEADWEIGHT's rules and policy are **generated and executed here** (287 checks under a real Lua), but the game
+itself is not: no sequencer, no ladder, no Roblox surface. `docs/DEADWEIGHT_PORT.md` says so phase by phase.
 
 The Luau modules are **executed** — `lua tests/ambient_test.lua` and `lua tests/walk_test.lua` run clean on Lua 5.4,
 and the walk half is pinned against parity vectors the C asserts too. That is plain Lua, not Luau: 5.4 has 64-bit
