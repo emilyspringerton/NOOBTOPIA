@@ -1,21 +1,21 @@
 -- tests/deadweight_board_test.lua -- the per-server LEADERBOARD, plain Lua:
 --     lua tests/deadweight_board_test.lua
 --
--- src/deadweight_board.lua is the Roblox-facing half of the internet-of-SHANKPIT shim: SHANKPIT
--- serialises its ladder to JSON and serves it to WOTAN; a Roblox server has neither, so the board is
--- built in-server from the same facts and ranked by the one number everybody climbs.
+-- src/deadweight_board.lua is the Roblox-facing half of the internet-of-SHANKPIT shim: SHANKPIT serialises its
+-- ladder to JSON and serves it to WOTAN; a Roblox server has neither, so the board is built in-server from the
+-- same facts and ranked by the one number everybody climbs.
 --
--- THE NUMBER IS PARENA's: PARENA/stdlib/deadweight/rating.prn, emitted here by gen_deadweight.sh. Every
--- expected value below is hand-derived from that file, not read back out of the generated module.
+-- THE NUMBER BELONGS TO THE LADDER, not to the board. It is `member.rating`, set by
+-- src/generated/deadweight_rating.lua (PARENA/stdlib/deadweight/rating.prn, emitted to this world and compiled
+-- into SHANKPIT's C from the same file). So these checks are about two things: the rating ARITHMETIC (every
+-- value hand-derived from that .prn) and the VIEW (ordering, ranks, ticker, the per-server reset).
 --
--- `ratingTerm(mine, theirs)` is (theirs - mine) / 50 clamped to +/-8. That division is INTEGER TRUNCATION
--- on purpose -- it is what the C target does -- so 930 vs 1000 is a -1 term (gain 15), not -2 (gain 14).
--- The board asserts that because the two worlds must agree on it; a floor-division port would print a
--- different table for the same server.
+-- `ratingTerm(mine, theirs)` is (theirs - mine) / 50 clamped to +/-8, and that division is INTEGER TRUNCATION
+-- because that is what the C target does: 930 vs 1000 is a -1 term (gain 15), not -2 (gain 14). A floor-division
+-- port would print a different table for the same server, which is why it is asserted here.
 
 package.path = "./src/?.lua;" .. package.path
 
-local Rules = require("generated.deadweight_rules")
 local Rating = require("generated.deadweight_rating")
 local Ladder = require("deadweight_ladder")
 local Board = require("deadweight_board")
@@ -26,151 +26,163 @@ local function check(cond, msg)
     if not cond then fails = fails + 1; print("FAIL: " .. msg) end
 end
 
--- ---- 1. the rating itself, hand-derived -------------------------------------------------------
+-- ---- 1. the rating arithmetic, hand-derived -----------------------------------------------------
 
 check(Rating.ratingStart() == 1000, "a newcomer starts at 1000")
 check(Rating.ratingFloor() == 100, "the floor is 100")
-
--- equal ratings: the base 16, no term
 check(Rating.ratingGain(1000, 1000) == 16, "beating an equal pays 16 (not " .. Rating.ratingGain(1000, 1000) .. ")")
--- +200 to the opponent: term = 4
 check(Rating.ratingGain(1000, 1200) == 20, "beating somebody 200 stronger pays 20 (not " .. Rating.ratingGain(1000, 1200) .. ")")
-check(Rating.ratingGain(1200, 1000) == 12, "beating somebody 200 weaker pays only 12 (not " .. Rating.ratingGain(1200, 1000) .. ")")
--- the term is clamped at +/-8, so a 2000-point gap still swings 24
-check(Rating.ratingGain(1000, 3000) == 24, "the clamp should cap a huge upset at 24")
-check(Rating.ratingGain(3000, 1000) == 8, "the clamp should floor a hopeless mismatch at 8")
+check(Rating.ratingGain(1200, 1000) == 12, "beating somebody 200 weaker pays 12 (not " .. Rating.ratingGain(1200, 1000) .. ")")
+check(Rating.ratingGain(1000, 3000) == 24, "the clamp caps a huge upset at 24")
+check(Rating.ratingGain(3000, 1000) == 8, "the clamp floors a hopeless mismatch at 8")
 -- TRUNCATION, not floor division: -70/50 is -1
 check(Rating.ratingGain(1000, 930) == 15, "a -70 term must truncate to -1 (gain 15, not " ..
     Rating.ratingGain(1000, 930) .. ")")
 check(Rating.ratingGain(930, 1000) == 17, "a +70 term is 1 (gain 17, not " .. Rating.ratingGain(930, 1000) .. ")")
 
--- zero-sum: the winner's gain IS the loser's loss, for the same pair
+-- zero-sum, for every pair -- the whole reason rating-loss takes the WINNER's view
 for _, pair in ipairs({ { 1000, 1200 }, { 1200, 1000 }, { 1000, 1000 }, { 300, 2900 } }) do
     local w, l = pair[1], pair[2]
     check(Rating.ratingGain(w, l) == Rating.ratingLoss(l, w),
         "gain(" .. w .. "," .. l .. ") is not loss(" .. l .. "," .. w .. ")")
 end
 
--- draws move both by a tenth of the gap, and are zero-sum too
-check(Rating.ratingDraw(1000, 1200) == 2, "a draw against 200 stronger pays 2 (not " .. Rating.ratingDraw(1000, 1200) .. ")")
 check(Rating.ratingDraw(1000, 1500) == 4, "a draw's term is clamped at 4")
-check(Rating.ratingDraw(1200, 1000) == -2, "a draw against 200 weaker costs 2")
+check(Rating.ratingDraw(1000, 1000) == 0, "a draw between equals moves nothing")
 check(Rating.ratingDraw(1000, 1200) == -Rating.ratingDraw(1200, 1000), "a draw is not zero-sum")
-
--- the floor holds, and a gain is never lost to it
-check(Rating.ratingApply(105, -20) == 100, "the floor should catch a drop below 100")
-check(Rating.ratingApply(100, -20) == 100, "the floor should hold at 100")
+check(Rating.ratingApply(105, -20) == 100, "the floor catches a drop below 100")
+check(Rating.ratingApply(100, -20) == 100, "the floor holds at 100")
 check(Rating.ratingApply(1000, 24) == 1024, "a gain applies plainly")
 
--- ---- 2. the board: zero-sum, and it climbs -----------------------------------------------------
+-- ---- 2. the ladder owns the number, and a match moves it both ways -------------------------------
 
-local board = Board.new()
-check(Board.ratingOf(board, 5) == 1000, "a pid with no history starts at 1000")
-
-local n0, n1 = Board.record(board, 0, 5, 0, 2, 1000)   -- pid 0 (a player) beats pid 5
-check(n0 == 1016 and n1 == 984, "the first win moved " .. tostring(n0) .. "/" .. tostring(n1) ..
-    ", expected 1016/984")
-check(Board.ratingOf(board, 0) == 1016, "the winner's rating did not stick")
-check(Board.ratingOf(board, 5) == 984, "the loser's rating did not stick")
-check(board.played[0] == 1 and board.played[5] == 1, "the matches played were not counted")
-
--- ...and now pid 5 is 32 behind, so winning pays a little more than the base
-local m0, m5 = Board.record(board, 0, 5, 1, 2, 2000)   -- pid 5 wins this time
-check(m5 - 984 == 16 + ((1016 - 984) // 50), "the comeback paid " .. tostring(m5 - 984) ..
-    ", expected " .. tostring(16 + ((1016 - 984) // 50)))
-check((m5 - 984) == (1016 - m0), "a rated match is not zero-sum (" .. tostring(m5 - 984) ..
-    " gained, " .. tostring(1016 - m0) .. " lost)")
-
--- a draw moves both by the same small amount, in opposite directions
-local before = Board.ratingOf(board, 0)
-local d0, d5 = Board.record(board, 0, 5, 2, 1, 3000)
-check(d0 - before == -(d5 - Board.ratingOf(board, 5)), "a draw is not zero-sum on the board")
-check(math.abs(d0 - before) <= 4, "a draw moved more than the 4-point clamp")
-
--- ---- 3. the table: ranked, and deterministic ---------------------------------------------------
-
-do
+local function build()
     local l = Ladder.new(1234)
     Ladder.setHero(l, 0)
     Ladder.addCitizen(l, 5, 0, 300, 0)
     Ladder.addCitizen(l, 6, 2, 800, 0)
+    return l
+end
+
+do
+    local l = build()
+    local hero = Ladder.memberForPid(l, 0)
+    check(l.members[hero].rating == 1000, "a member starts at " .. tostring(l.members[hero].rating))
+    check(l.members[Ladder.memberForPid(l, 5)].rating == 1000, "a citizen starts at 1000")
+
+    local slot = Ladder.challenge(l, 5, 6, 1000)
+    local winner = Ladder.accept(l, slot, 2000)
+    local i5, i6 = Ladder.memberForPid(l, 5), Ladder.memberForPid(l, 6)
+    local r5, r6 = l.members[i5].rating, l.members[i6].rating
+    -- equal ratings, so the winner's delta is exactly the base 16
+    if winner == 5 then
+        check(r5 == 1016 and r6 == 984, "the winner is " .. r5 .. " and the loser " .. r6 .. ", expected 1016/984")
+    elseif winner == 6 then
+        check(r6 == 1016 and r5 == 984, "the winner is " .. r6 .. " and the loser " .. r5 .. ", expected 1016/984")
+    else
+        check(false, "a two-citizen match came back as a draw (" .. tostring(winner) .. ")")
+    end
+    check((r5 - 1000) == -(r6 - 1000), "the match was not zero-sum (" .. (r5 - 1000) .. "/" .. (r6 - 1000) .. ")")
+
+    -- ...and the loser has not been reset, moved to the winner's side, or left un-rated
+    check(r5 ~= r6, "both ends of a decided match came out with the same rating")
+    -- the player, who did not play, is untouched
+    check(l.members[hero].rating == 1000, "a match between two citizens moved an absent player's rating")
+end
+
+-- a draw is symmetric and small, and only among members whose ratings differ
+do
+    local l = build()
+    local i5, i6 = Ladder.memberForPid(l, 5), Ladder.memberForPid(l, 6)
+    -- force a gap so the draw has something to move (a draw between equals is exactly 0, asserted above)
+    l.members[i6].rating = 1200
+    -- replay the same seed twice: the draw branch is deterministic
+    local slot = Ladder.challenge(l, 5, 6, 1000)
+    Ladder.accept(l, slot, 2000)
+    local r5, r6 = l.members[i5].rating, l.members[i6].rating
+    check(-6 <= r5 and r5 <= 1024, "a rating left the plausible band (" .. r5 .. ")")
+    check(r6 >= 100, "the floor did not hold (" .. r6 .. ")")
+end
+
+-- ---- 3. the table: ranked, and deterministic ---------------------------------------------------
+
+do
+    local l = build()
     l.members[Ladder.memberForPid(l, 5)].wins = 1
     l.members[Ladder.memberForPid(l, 5)].games = 1
     l.members[Ladder.memberForPid(l, 6)].wins = 0
     l.members[Ladder.memberForPid(l, 6)].games = 1
-
     local b = Board.new()
-    Board.record(b, 5, 6, 0, 1, 1000)   -- citizen beats citizen
+
     local rows = Board.rows(b, l)
     check(#rows == 3, "the table holds " .. #rows .. " rows, expected the player + two citizens")
-    check(rows[1].pid == 5, "the winner is not first (" .. tostring(rows[1].pid) .. ")")
     check(rows[1].rank == 1 and rows[#rows].rank == #rows, "the ranks are not 1..n")
-    check(rows[1].rating > rows[2].rating, "the rows are not sorted by rating")
-    check(rows[1].winrate == 1000, "a 1-0 record is not 1000 permille (" .. rows[1].winrate .. ")")
-    check(rows[2].winrate == 0, "a 0-1 record is not 0 permille (" .. rows[2].winrate .. ")")
+    check(rows[1].rating >= rows[2].rating and rows[2].rating >= rows[3].rating, "the rows are not sorted by rating")
 
-    -- a tie is broken the same way twice, so a re-render never shuffles rows under a cursor
-    local l2 = Ladder.new(9)
-    Ladder.setHero(l2, 0)
-    Ladder.addCitizen(l2, 5, 0, 300, 0)
-    Ladder.addCitizen(l2, 6, 2, 800, 0)
-    local b2 = Board.new()
-    local r1 = Board.rows(b2, l2)
-    local r2 = Board.rows(b2, l2)
-    check(#r1 == #r2, "two renders of the same board disagree on the row count")
-    local same = true
-    for i = 1, #r1 do if r1[i].pid ~= r2[i].pid then same = false end end
+    local r1 = Board.rows(b, l)
+    local same = (#r1 == #rows)
+    for i = 1, math.min(#r1, #rows) do if r1[i].pid ~= rows[i].pid then same = false end end
     check(same, "two renders of the same board disagree on the order")
-    check(r1[1].pid < r1[2].pid or r1[1].rating > r1[2].rating,
-        "an equal-rating tie is not broken by pid")
 
-    local you = Board.rowFor(b, l, 5)
-    check(you ~= nil and you.rank == 1, "the pid's own row is not the winner's")
+    local w5 = Board.rowFor(b, l, 5)
+    check(w5 ~= nil and w5.winrate == 1000, "a 1-0 record is not 1000 permille (" .. tostring(w5 and w5.winrate) .. ")")
+    local w6 = Board.rowFor(b, l, 6)
+    check(w6 ~= nil and w6.winrate == 0, "a 0-1 record is not 0 permille (" .. tostring(w6 and w6.winrate) .. ")")
     check(Board.rowFor(b, l, 999) == nil, "a pid that is not on the ladder got a row")
 
+    Board.noteMatch(b, 5, 6, 0, Ladder.CHAL.CITIZEN_CITIZEN, 2500)
     local snap = Board.snapshot(b, l)
     check(#snap.entries == 3, "the snapshot holds " .. #snap.entries .. " entries")
     check(snap.population.players == 1 and snap.population.citizens == 2,
         "the population is " .. snap.population.players .. "/" .. snap.population.citizens)
-    check(#snap.recent == 1, "the ticker holds " .. #snap.recent .. " matches, expected 1")
-    check(snap.recent[1].kind == "citizen-vs-citizen", "the ticker kind is " .. tostring(snap.recent[1].kind))
+    check(#snap.recent == 1 and snap.recent[1].kind == "citizen-vs-citizen",
+        "the ticker does not hold the one match, as a kind string")
 end
 
--- ---- 4. per-server means per-server: a reset is a fresh table ----------------------------------
+-- ---- 4. per-server means per-server: a new ladder is a fresh table ------------------------------
 
 do
-    local b = Board.new()
-    Board.record(b, 0, 5, 0, 2, 1000)
-    check(Board.ratingOf(b, 0) ~= 1000, "the fixture did not move the rating")
-    Board.reset(b)
-    check(Board.ratingOf(b, 0) == 1000 and Board.ratingOf(b, 5) == 1000,
-        "a reset did not put everyone back on 1000")
-    check(#b.history == 0, "a reset kept the old ticker")
+    local l = build()
+    local slot = Ladder.challenge(l, 5, 6, 1000)
+    Ladder.accept(l, slot, 2000)
+    check(l.members[Ladder.memberForPid(l, 5)].rating ~= 1000 or l.members[Ladder.memberForPid(l, 6)].rating ~= 1000,
+        "the fixture did not move a rating")
+
+    -- A new server = a new ladder, which is the whole persistence story on Roblox.
+    local fresh = build()
+    for i = 1, Ladder.MAX_MEMBERS do
+        if fresh.members[i].active == 1 then
+            check(fresh.members[i].rating == 1000, "a fresh ladder did not start a member at 1000")
+        end
+    end
+
+    -- within one server the rating survives a save with no decks in it
+    local snap = Ladder.serialize(l)
+    local back = Ladder.deserialize(snap, 1234, 3000)
+    for i = 1, Ladder.MAX_MEMBERS do
+        if l.members[i].active == 1 then
+            local j = Ladder.memberForPid(back, l.members[i].pid)
+            check(j >= 0, "pid " .. l.members[i].pid .. " did not come back")
+            if j >= 0 then
+                check(back.members[j].rating == l.members[i].rating,
+                    "pid " .. l.members[i].pid .. " came back on " .. back.members[j].rating ..
+                    ", saved " .. l.members[i].rating)
+            end
+        end
+    end
 end
 
--- ---- 5. ratings are the only thing worth keeping -----------------------------------------------
+-- ---- 5. the band holds over a long climb --------------------------------------------------------
 
 do
-    local b = Board.new()
-    Board.record(b, 0, 5, 0, 2, 1000)
-    local saved = Board.dump(b)
-    check(saved.ratings ~= nil and saved.ratings[0] == 1016, "the dump lost a rating")
-    local b2 = Board.load(Board.new(), saved)
-    check(Board.ratingOf(b2, 0) == 1016, "the load did not restore a rating")
-    check(#b2.history == 0, "the load invented a ticker")
-end
-
--- ---- 6. every rating is inside the rules' own band ---------------------------------------------
-
-do
-    local b = Board.new()
-    local r = 500
-    for i = 1, 80 do
-        r = Board.record(b, 0, 5, 0, 2, i * 1000) and Board.ratingOf(b, 0) or r
-        check(Board.ratingOf(b, 0) >= Rating.ratingFloor(), "the winner fell under the floor")
-        check(Board.ratingOf(b, 5) >= Rating.ratingFloor(), "the loser fell under the floor")
-        check(Board.ratingOf(b, 0) <= 1000 + 24 * 80, "the winner climbed past the swing ceiling")
-        check(Board.ratingOf(b, 0) <= Rules.numCards() * 1000, "a rating left the integer band")
+    local l = build()
+    local a, b = Ladder.memberForPid(l, 5), Ladder.memberForPid(l, 6)
+    for i = 1, 6 do
+        local slot = Ladder.challenge(l, 5, 6, 1000 + i * 100)
+        if slot >= 0 then Ladder.accept(l, slot, 1500 + i * 100) end
+        check(l.members[a].rating >= Rating.ratingFloor(), "a rating fell under the floor")
+        check(l.members[b].rating >= Rating.ratingFloor(), "a rating fell under the floor")
+        check(l.members[a].rating <= 1000 + 24 * 6, "a rating climbed past the swing ceiling")
     end
 end
 

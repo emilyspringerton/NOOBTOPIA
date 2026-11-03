@@ -248,3 +248,11 @@ if punchEvent and punchEvent:IsA("RemoteEvent") then
 else
     warn("NOOBTOPIA: no 'Punch' RemoteEvent in ReplicatedStorage -- noobs spawn and talk, but cannot be hit yet")
 end
+
+-- DEADWEIGHT: the table, the citizens' ladder and the PER-SERVER leaderboard (src/deadweight_server.lua, which
+-- keeps every decision in the tested pure module src/deadweight_room.lua). One prompt, one clock, one board.
+-- Wrapped so a place without the module still runs: the game is the point, the card table is an affordance.
+pcall(function()
+    local Deadweight = require(script.Parent.deadweight_server)
+    Deadweight.start()
+end)

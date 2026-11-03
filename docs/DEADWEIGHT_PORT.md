@@ -62,10 +62,24 @@ expression) and a named refusal for statement forms it cannot express — before
    re-craft from both. In Roblox this is DataStore-shaped rather than process-shaped, and the honest
    question is whether a citizen's record should be per-place-session or persistent across places. Decide it
    before writing it; the deck crafting itself is already here (the policy).
-3. **The Roblox surface.** A Noob sitting down at a table (a `ProximityPrompt`), a `RemoteEvent` for
-   challenge/accept/decline, and a board GUI reading the same fields the phone shows in SHANKPIT: round,
-   both hulls, both energies, and the last few rounds as kind/tier/power. This is the first piece that
-   touches `workspace` — it belongs in `src/noobtopia.lua`'s family, not in a rules module.
+3. ~~The Roblox surface.~~ **DONE (2026-11-03, founder: "byukd the roblox ui and rating in the c ladder").**
+   `src/deadweight_room.lua` (seats, the 45-second offer cycle, ONE prompt, decline, `frame()`),
+   `src/deadweight_ui.lua` (a tabletop with a `ProximityPrompt` and a server-written `ScreenGui`) and
+   `src/deadweight_server.lua` (one ladder and one table per server, a `Heartbeat` tick, a frame per
+   player). A `RemoteEvent` was deliberately NOT used: a client firing one is a client-trusted input,
+   and the only thing the design needs from the player is "I pressed the thing at the table".
+   Three facts worth keeping:
+   * the prompt is ONE button with three branches (not seated ⇒ sit, an offer waiting ⇒ accept,
+     otherwise ⇒ challenge the nearest rating), because a server Script cannot see a click;
+   * the rating moved into the LADDER in the same change (`member.rating`, one zero-sum delta applied
+     by the single recorder every finished match goes through, carried by the save) — the board is now
+     a VIEW, not a second copy of the number, and SHANKPIT's `dw_rating.c` comes from the same `.prn`;
+   * **a citizen pid must be non-negative.** `Ladder.memberForPid` answers -1 below zero (the C's own
+     "-1 means nobody"), so the server's original negative citizen pids produced bodies at the table
+     that were invisible to the ladder: unranked, unchallengeable, every press `busy`. Citizens now
+     mint from `1e12 + i`, `Room.join` refuses a negative pid, and `start` asserts each one landed.
+   **Still not run:** `deadweight_ui.lua`/`deadweight_server.lua` need Studio, and there is no
+   DataStore — a per-server board that resets with the server is the accepted design.
 4. **The internet of SHANKPIT.** `SHANKPIT/packages/simulation/dw_net.c` publishes the ladder as schema-1
    JSON and WOTAN's `/shankpit-citizens.html` reads it. If Roblox's ladder is meant to be visible on the
    same page, it has to publish the same schema — one contract, two producers, and a schema bump touches

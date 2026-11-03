@@ -1,34 +1,32 @@
 -- src/deadweight_board.lua -- the LEADERBOARD a Roblox server shows.
 --
--- Founder, real-time: "we port the internet of shankpit bits so there can be an on server IDUNA and
--- WOTAN leaderboard on ROBLOX until we get a permanent home the leaderboard can be per server and reset
--- its fine it lets players face the noobs and also eachother to climb the elos", then "we dont need iduna
--- i guess just the leaderboard for now whatever you think".
+-- Founder, real-time: "we port the internet of shankpit bits so there can be an on server IDUNA and WOTAN
+-- leaderboard on ROBLOX until we get a permanent home the leaderboard can be per server and reset its fine it
+-- lets players face the noobs and also eachother to climb the elos", then "we dont need iduna i guess just the
+-- leaderboard for now whatever you think".
 --
--- So this is the CONSUMER half of the internet-of-SHANKPIT shim, in the shape Roblox can actually use:
--- on SHANKPIT's side `dw_net.c` serialises the ladder to schema-1 JSON and `tools/shankpit_netd.c`
--- serves it to WOTAN's page. Roblox has no HTTP daemon in this repo and no IDUNA account for a noob, so
--- the board lives IN THE SERVER instead: it is built from the same ladder facts, ranked by a number
--- everybody can climb, and it resets with the server. Nothing here talks to a network.
+-- THE NUMBER IS NOT THIS FILE'S. It belongs to the ladder (src/deadweight_ladder.lua reads
+-- `member.rating`, set by src/generated/deadweight_rating.lua, emitted from
+-- PARENA/stdlib/deadweight/rating.prn -- the same .prn SHANKPIT compiles to C). This module is a VIEW: it ranks
+-- the ladder's members, formats their rows, and keeps a short ticker of matches. It deliberately owns no
+-- ratings, because a second copy of the number is exactly how a board and a ladder start disagreeing about what
+-- a win was worth.
 --
--- WHAT MAKES IT A LEADERBOARD AND NOT A TABLE OF RECORDS: the rating. `PARENA/stdlib/deadweight/
--- rating.prn` is the one place the number is defined, emitted here to Luau (and available to the C side
--- from the same file -- wiring that up is the named follow-up, not a second implementation).
+-- PER SERVER, AND THAT IS THE DESIGN. A ladder lives in one server's memory (src/deadweight_server.lua seeds
+-- it from the job id), so its board resets with the server. No IDUNA, no DataStore schema, no HTTP: the founder
+-- accepted a resetting board until there is a permanent home, and inventing persistence now would mean choosing
+-- a storage contract nobody has agreed to.
 --
--- THE RATING IS PER SERVER, deliberately. Ratings live in this module's own table, updated from the
--- matches the caller reports, so each server climbs its own ladder and a restart starts everyone at
--- 1000. That is the founder's "per server and reset its fine": no persistence, no cross-server merge,
--- and therefore no way for one server's population to poison another's table.
---
--- DATA ONLY, like every other rules module here: no `workspace`, no `game`, no DataStore call. A host
--- that wants persistence can keep `dump`/`load` in a DataStore; nothing in this file requires it.
+-- DATA ONLY: no `workspace`, no `game`, no network. src/deadweight_ui.lua draws this; nothing here knows a
+-- screen exists.
 
-local Rating = require("generated.deadweight_rating")
 local Ladder = require("deadweight_ladder")
 
 local M = {}
 
--- The kinds, matching dw_net's schema-1 `kind` strings so a page can render either source.
+M.HISTORY_LINES = 20
+
+-- The kinds, matching dw_net's schema-1 strings so a page could render either source.
 M.KIND_NAMES = {
     [0] = "none",
     [1] = "citizen-vs-citizen",
@@ -38,60 +36,20 @@ M.KIND_NAMES = {
 }
 
 function M.new()
-    return {
-        ratings = {},     -- pid -> rating
-        played = {},      -- pid -> matches counted in THIS board
-        history = {},     -- newest last: { kind, pid0, pid1, winner, at }
-    }
+    return { history = {} }
 end
 
-function M.reset(board)
-    board.ratings = {}
-    board.played = {}
-    board.history = {}
-end
-
-function M.ratingOf(board, pid)
-    local r = board.ratings[pid]
-    if r == nil then return Rating.ratingStart() end
-    return r
-end
-
--- Counts one finished match. `winner` is the ladder's own convention: 0 = seat 0 (pid0), 1 = seat 1
--- (pid1), 2 = draw. A draw moves both by the same small amount; a win is zero-sum by construction (the
--- winner's gain and the loser's loss come from the same term in rating.prn).
-function M.record(board, pid0, pid1, winner, kind, at)
-    local r0 = M.ratingOf(board, pid0)
-    local r1 = M.ratingOf(board, pid1)
-    local n0, n1
-    if winner == 0 then
-        local delta = Rating.ratingGain(r0, r1)
-        n0 = Rating.ratingApply(r0, delta)
-        n1 = Rating.ratingApply(r1, -delta)
-    elseif winner == 1 then
-        local delta = Rating.ratingGain(r1, r0)
-        n1 = Rating.ratingApply(r1, delta)
-        n0 = Rating.ratingApply(r0, -delta)
-    else
-        local delta = Rating.ratingDraw(r0, r1)
-        n0 = Rating.ratingApply(r0, delta)
-        n1 = Rating.ratingApply(r1, -delta)
-    end
-    board.ratings[pid0] = n0
-    board.ratings[pid1] = n1
-    board.played[pid0] = (board.played[pid0] or 0) + 1
-    board.played[pid1] = (board.played[pid1] or 0) + 1
+-- Records that a match happened, for the ticker only. The ratings already moved inside the ladder, in the one
+-- place a match stops being live -- so this cannot be the thing that forgets to move them.
+function M.noteMatch(board, pid0, pid1, winner, kind, at)
     board.history[#board.history + 1] = {
         kind = kind or 0, pid0 = pid0, pid1 = pid1, winner = winner or 2, at = at or 0,
-        delta = { n0 - r0, n1 - r1 },
     }
-    -- bounded: a board is a screen, not a log
-    while #board.history > 20 do table.remove(board.history, 1) end
-    return n0, n1
+    while #board.history > M.HISTORY_LINES do table.remove(board.history, 1) end
 end
 
--- The ranked table. Deterministic: rating desc, then wins desc, then pid asc, so two servers holding the
--- same facts print the same board and a re-render never shuffles rows under a player's cursor.
+-- The ranked table. Deterministic -- rating desc, wins desc, pid asc -- so two renders of the same facts agree
+-- and a re-draw never shuffles rows under a player's cursor.
 function M.rows(board, ladder, limit)
     local rows = {}
     for i = 1, Ladder.MAX_MEMBERS do
@@ -103,7 +61,7 @@ function M.rows(board, ladder, limit)
                 path = m.path,
                 wins = m.wins,
                 games = m.games,
-                rating = M.ratingOf(board, m.pid),
+                rating = m.rating,
                 winrate = (m.games > 0) and ((m.wins * 1000) // m.games) or 0,
             }
         end
@@ -122,7 +80,7 @@ function M.rows(board, ladder, limit)
     return rows
 end
 
--- A row for one player ("you are 3rd of 9"), or nil when that pid is not on this ladder.
+-- One player's row ("you are 3rd of 9"), or nil when that pid is not on this ladder.
 function M.rowFor(board, ladder, pid)
     for _, row in ipairs(M.rows(board, ladder)) do
         if row.pid == pid then return row end
@@ -130,9 +88,13 @@ function M.rowFor(board, ladder, pid)
     return nil
 end
 
--- The facts a page or a DataStore would want. NOT schema-1 JSON: that is dw_net.c's job on a box that
--- has a filesystem and an HTTP daemon. This is the same information as plain values a Roblox GUI can
--- read directly, which is the whole point of doing the board in the server.
+function M.ratingOf(board, ladder, pid)
+    local row = M.rowFor(board, ladder, pid)
+    if row then return row.rating end
+    return nil
+end
+
+-- The same information dw_net's schema 1 carries, as plain values a Roblox GUI reads directly.
 function M.snapshot(board, ladder)
     local rows = M.rows(board, ladder)
     local out = { entries = {}, recent = {}, population = { citizens = 0, players = 0 } }
@@ -151,21 +113,6 @@ function M.snapshot(board, ladder)
         }
     end
     return out
-end
-
--- Ratings only, for whatever a host wants to persist. Decks are not here and never were: a deck is a
--- function of a record and a meta, not a stored preference.
-function M.dump(board)
-    return { ratings = board.ratings, played = board.played }
-end
-
-function M.load(board, saved)
-    board.ratings = {}
-    board.played = {}
-    if not saved then return board end
-    for pid, r in pairs(saved.ratings or {}) do board.ratings[pid] = r end
-    for pid, n in pairs(saved.played or {}) do board.played[pid] = n end
-    return board
 end
 
 return M

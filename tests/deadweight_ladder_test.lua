@@ -76,8 +76,8 @@ local function run_lid(lid, ops)
             local deck = {}
             for d = 1, #m.deck do deck[d] = string.format("%d", m.deck[d]) end
             out[#out + 1] = string.format(
-                "member %d pid %d player %d path %d aggr %d wins %d games %d deck %s",
-                lid, m.pid, m.isPlayer, m.path, m.aggression, m.wins, m.games,
+                "member %d pid %d player %d path %d aggr %d wins %d games %d rating %d deck %s",
+                lid, m.pid, m.isPlayer, m.path, m.aggression, m.wins, m.games, m.rating,
                 table.concat(deck, " "))
         end
     end

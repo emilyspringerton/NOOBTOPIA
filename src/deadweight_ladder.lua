@@ -25,6 +25,7 @@
 
 local Rules = require("generated.deadweight_rules")
 local Policy = require("generated.deadweight_policy")
+local Rating = require("generated.deadweight_rating")
 local Game = require("deadweight_game")
 
 local M = {}
@@ -75,7 +76,7 @@ end
 
 local function blank_member()
     return { active = 0, isPlayer = 0, pid = 0, path = 0, aggression = 500,
-             wins = 0, games = 0, deck = {}, lastCraftMs = 0 }
+             wins = 0, games = 0, rating = 0, deck = {}, lastCraftMs = 0 }
 end
 
 local function blank_challenge()
@@ -167,6 +168,7 @@ function M.addCitizen(l, pid, path, aggression, now)
     if aggression < 0 then aggression = 0 end
     if aggression > 1000 then aggression = 1000 end
     m.aggression = aggression
+    m.rating = Rating.ratingStart()
     l.members[idx] = m
     l.count = l.count + 1
     M.craftDeck(l, idx, now)
@@ -187,6 +189,7 @@ function M.addPlayer(l, pid, now)
     m.pid = pid
     m.path = M.PLAYER_PATH
     m.aggression = 500
+    m.rating = Rating.ratingStart()
     l.members[idx] = m
     l.count = l.count + 1
     M.craftDeck(l, idx, now)
@@ -281,6 +284,23 @@ function M.record(l, i0, i1, kind, winner, m, now)
     else
         a.games = a.games + 1
         b.games = b.games + 1
+    end
+
+    -- THE RATING, from the same .prn SHANKPIT compiles to C: one delta, applied to both ends, so a match is
+    -- zero-sum (the winner's gain IS the loser's loss) and the floor is the only thing that can break the
+    -- sum. Decks re-craft below with the NEW record, so the number and the deck agree about what happened.
+    do
+        local r0, r1 = a.rating, b.rating
+        if winner == 0 or winner == 1 then
+            local delta
+            if winner == 0 then delta = Rating.ratingGain(r0, r1) else delta = Rating.ratingGain(r1, r0) end
+            a.rating = Rating.ratingApply(r0, (winner == 0) and delta or -delta)
+            b.rating = Rating.ratingApply(r1, (winner == 1) and delta or -delta)
+        else
+            local delta = Rating.ratingDraw(r0, r1)
+            a.rating = Rating.ratingApply(r0, delta)
+            b.rating = Rating.ratingApply(r1, -delta)
+        end
     end
 
     l.last = {
@@ -391,7 +411,7 @@ function M.serialize(l)
         if m.active == 1 then
             out.members[#out.members + 1] = {
                 pid = m.pid, isPlayer = m.isPlayer, path = m.path,
-                aggression = m.aggression, wins = m.wins, games = m.games,
+                aggression = m.aggression, wins = m.wins, games = m.games, rating = m.rating,
             }
         end
     end
@@ -421,6 +441,7 @@ function M.deserialize(snap, seed, now)
                 m.aggression = want.aggression
                 m.wins = want.wins
                 m.games = want.games
+                m.rating = want.rating or Rating.ratingStart()
                 M.craftDeck(l, idx, now)
             end
         end
