@@ -39,5 +39,7 @@ mkdir -p "$root/src/generated"
 "$parena_bin" build "$parena_dir/stdlib/shankpit/material_rules.prn" -o "$root/src/generated/material_rules.lua"
 # ...and the SKY: day/night, what each weather does to the light, and how far you can see through fog.
 "$parena_bin" build "$parena_dir/stdlib/shankpit/sky_rules.prn" -o "$root/src/generated/sky_rules.lua"
+# ...and the COSY verbs: kicking a dandelion, hugging a tree. Nothing here can hurt anything.
+"$parena_bin" build "$parena_dir/stdlib/shankpit/cozy_rules.prn" -o "$root/src/generated/cozy_rules.lua"
 
-echo "regenerated src/generated/{ambient_life,walk_rules,arena_rules,lighting_rules,material_rules,sky_rules}.lua"
+echo "regenerated src/generated/{ambient_life,walk_rules,arena_rules,lighting_rules,material_rules,sky_rules,cozy_rules}.lua"

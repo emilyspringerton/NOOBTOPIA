@@ -118,6 +118,12 @@ matrix's legibility floor still governs indoor light, so night is dark outside w
 A place that publishes `SHANKPIT_cover`/`_rain`/... overrides just that field; `wiring.mergeSky` is what keeps a
 reading and a default distinguishable.
 
+**And two cosy verbs** (same day): `src/cozy.lua` lets a noob kick a dandelion (by day, off cooldown, 3–6 seeds
+from its own seed, +60 comfort) and hug a tree (trunk thick enough, 8 s cooldown, +120 comfort, worth less each
+time in one day and reset by morning). The numbers are `cozy_rules.prn`'s; the two cooldown timestamps and the
+day count are the host's. Neither verb can hurt anything. There is no interaction prompt yet — see the honest status
+below — because the repo has no dandelion or tree art to tag.
+
 Still unverified: **none of this has run in a place.** No Studio here, and `src/noobtopia.lua` is Luau (it uses
 `+=`), so it cannot even be syntax-checked on this box -- the numbers and the assignment decisions are tested, the
 assignment itself is not.
