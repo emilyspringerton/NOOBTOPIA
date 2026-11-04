@@ -89,6 +89,29 @@ eq(fogTarget.Ambient[1], stormPlan.Ambient[1], "with the identity conversion the
 eq(select(2, Wiring.applyPlan(nil, {})), "no-plan", "no plan is its own reason")
 eq(select(2, Wiring.applyPlan({}, nil)), "no-target", "no target is its own reason")
 
+-- ---- 3b. night is spent on the OUTDOORS, and a place's own reading beats the model -------------------
+local noonPlan = Wiring.lightPlan(clear, 1, 1000)
+eq(noonPlan.night_scale, 1000, "full sun leaves the outdoors at full ambient")
+eq(noonPlan.OutdoorAmbient[1], noonPlan.Ambient[1], "so outdoors and indoors agree at noon")
+local nightPlan = Wiring.lightPlan(clear, 1, 0)
+eq(nightPlan.night_scale, Wiring.NIGHT_AMBIENT_FLOOR_PERMILLE, "midnight makes the outdoors its declared floor")
+eq(nightPlan.Ambient[1], noonPlan.Ambient[1], "while the FLOORED indoor ambient is untouched")
+check(nightPlan.OutdoorAmbient[1] < nightPlan.Ambient[1], "so a night is visibly darker outside than inside")
+check(nightPlan.OutdoorAmbient[1] > 0, "but not pitch black -- 250 permille of it")
+eq(Wiring.lightPlan(clear, 1).night_scale, nil, "with no sun passed, there is no night split at all")
+eq(Wiring.lightPlan(clear, 1, -50).night_scale, Wiring.NIGHT_AMBIENT_FLOOR_PERMILLE, "a negative sun clamps")
+eq(Wiring.lightPlan(clear, 1, 5000).night_scale, 1000, "and so does one past noon")
+
+local model = { cover = 1000, rain = 1000, storm = 1000, fog_wash = 1000, visibility = 3000,
+                ambient_level = 5, flash = 0, interior = 0 }
+local merged = Wiring.mergeSky(model, { rain = 0 })
+eq(merged.rain, 0, "a place that published rain=0 really meant it")
+eq(merged.cover, 1000, "a field it never mentioned comes from the model, not from a default")
+eq(merged.visibility, 3000, "including the visibility reading")
+eq(Wiring.mergeSky(model, {}).cover, 1000, "an empty override changes nothing")
+eq(Wiring.mergeSky(model, nil).cover, 1000, "and neither does no override")
+eq(Wiring.mergeSky(nil, { cover = 250 }).cover, 250, "an override with no model still lands")
+
 -- ---- 4. surfaces: an explicit attribute beats a name, and the vocabulary is closed --------------------
 eq(Wiring.surfaceForName("Mirror"), Material.MIRROR, "a mirror is a mirror")
 eq(Wiring.surfaceForName("glass pane"), Material.GLASS, "a name containing glass is glass")

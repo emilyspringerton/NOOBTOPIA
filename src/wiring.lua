@@ -30,31 +30,80 @@ local SKY_DEFAULTS = {
 }
 Wiring.SKY_DEFAULTS = SKY_DEFAULTS
 
--- Read a place's published weather. `get(key)` is supplied by the host (an attribute lookup); a throwing or
--- non-numeric getter yields the default instead of aborting the whole frame.
+-- The keys a place ACTUALLY published, and only those. This is what a caller needs to tell "the place overrode
+-- the rain" from "the place has no opinion about the rain", which a defaults-filled table cannot express.
+function Wiring.publishedSky(get)
+    local out = {}
+    if type(get) ~= "function" then return out end
+    for key in pairs(SKY_DEFAULTS) do
+        local ok, got = pcall(get, key)
+        local n = ok and tonumber(got) or nil
+        if n ~= nil then out[key] = math.floor(n) end
+    end
+    return out
+end
+
+-- Read a place's published weather with the defaults filled in. `get(key)` is supplied by the host (an attribute
+-- lookup); a throwing or non-numeric getter yields the default instead of aborting the whole frame.
 function Wiring.skyFrom(get)
+    local published = Wiring.publishedSky(get)
     local sky = {}
     for key, default in pairs(SKY_DEFAULTS) do
-        local value = nil
-        if type(get) == "function" then
-            local ok, got = pcall(get, key)
-            if ok then value = got end
-        end
-        local n = tonumber(value)
-        sky[key] = (n ~= nil) and math.floor(n) or default
+        sky[key] = (published[key] ~= nil) and published[key] or default
     end
     return sky
 end
 
+-- A sky MODEL (the clock and weather deciding everything) with a place's explicit readings laid on top. A place
+-- that publishes `SHANKPIT_rain` really means it; a field it never mentions comes from the model, not from a
+-- default that would silently override the model's own answer.
+function Wiring.mergeSky(model, published)
+    local out = {}
+    if type(model) == "table" then
+        for key, value in pairs(model) do out[key] = value end
+    end
+    if type(published) == "table" then
+        for key in pairs(SKY_DEFAULTS) do
+            local n = tonumber(published[key])
+            if n ~= nil then out[key] = math.floor(n) end
+        end
+    end
+    return out
+end
+
 -- The assignments a Roblox host should make, as data. `FogEnd` may be nil, and that is a READING, not a gap: the
 -- matrix says there is no fog to draw, so the plan says so instead of choosing a distance.
-function Wiring.lightPlan(scene, studs_per_unit)
+-- How dark the darkest night may make the OUTDOORS, permille. A presentation choice, not a rule -- the rules
+-- only report the sun -- and stated here rather than buried as a magic number.
+Wiring.NIGHT_AMBIENT_FLOOR_PERMILLE = 250
+
+-- The assignments a host should make, as data. `FogEnd` may be nil, and that is a READING, not a gap: the matrix
+-- says there is no fog to draw, so the plan says so instead of choosing a distance.
+--
+-- `sun_permille` (optional) is NIGHT, and night is not weather: the matrix's ambient floor is a
+-- competitive-legibility guarantee, so the sun is spent on OutdoorAmbient alone -- a roofed space keeps the
+-- floored indoor light while the outdoors really goes dark. Pass nil and there is no outdoors/night split at all.
+function Wiring.lightPlan(scene, studs_per_unit, sun_permille)
     local rb = Lighting.roblox(scene or Lighting.scene(nil), studs_per_unit)
+    local outdoor = rb.outdoor_ambient
+    local night_scale = nil
+    local sun = tonumber(sun_permille)
+    if sun ~= nil then
+        local s = (sun < 0) and 0 or ((sun > 1000) and 1000 or sun)
+        night_scale = Wiring.NIGHT_AMBIENT_FLOOR_PERMILLE +
+            math.floor(((1000 - Wiring.NIGHT_AMBIENT_FLOOR_PERMILLE) * s) / 1000)
+        outdoor = {
+            rb.outdoor_ambient[1] * night_scale / 1000,
+            rb.outdoor_ambient[2] * night_scale / 1000,
+            rb.outdoor_ambient[3] * night_scale / 1000,
+        }
+    end
     return {
         Ambient = rb.ambient,
-        OutdoorAmbient = rb.outdoor_ambient,
+        OutdoorAmbient = outdoor,
         Brightness = rb.brightness,
         FogEnd = rb.fog_end,
+        night_scale = night_scale,
         scene = scene,
     }
 end

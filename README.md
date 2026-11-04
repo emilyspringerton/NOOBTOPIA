@@ -111,6 +111,13 @@ but a `Color3` wrapper.
 entire compensation term and handed a storm the same brightness as a clear sky. It is now clamped to the Lighting
 service's own range (0..3), and both suites pin that a dimmed world gets MORE than 1.0.
 
+**The sky is wired too** (same day): the host holds a clock and a weather (`SHANKPIT_minutes`, `SHANKPIT_weather`),
+advances it at `MINUTES_PER_SECOND` pacing, and `src/sky.lua` asks `sky_rules.prn` for the sun, each weather's
+intensities and the visibility through fog. The sun goes to `Lighting.ClockTime` and to `OutdoorAmbient` only — the
+matrix's legibility floor still governs indoor light, so night is dark outside without making a match unreadable.
+A place that publishes `SHANKPIT_cover`/`_rain`/... overrides just that field; `wiring.mergeSky` is what keeps a
+reading and a default distinguishable.
+
 Still unverified: **none of this has run in a place.** No Studio here, and `src/noobtopia.lua` is Luau (it uses
 `+=`), so it cannot even be syntax-checked on this box -- the numbers and the assignment decisions are tested, the
 assignment itself is not.

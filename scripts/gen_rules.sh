@@ -37,5 +37,7 @@ mkdir -p "$root/src/generated"
 # surface is, as a function of the tick). Both were emitted to C long ago; this is the other half of the merge.
 "$parena_bin" build "$parena_dir/stdlib/shankpit/lighting_rules.prn" -o "$root/src/generated/lighting_rules.lua"
 "$parena_bin" build "$parena_dir/stdlib/shankpit/material_rules.prn" -o "$root/src/generated/material_rules.lua"
+# ...and the SKY: day/night, what each weather does to the light, and how far you can see through fog.
+"$parena_bin" build "$parena_dir/stdlib/shankpit/sky_rules.prn" -o "$root/src/generated/sky_rules.lua"
 
-echo "regenerated src/generated/{ambient_life,walk_rules,arena_rules,lighting_rules,material_rules}.lua"
+echo "regenerated src/generated/{ambient_life,walk_rules,arena_rules,lighting_rules,material_rules,sky_rules}.lua"

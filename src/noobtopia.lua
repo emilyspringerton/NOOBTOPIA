@@ -30,6 +30,7 @@ local Witness = require(script.Parent.big_o_witness)
 local Arena = require(script.Parent.generated.arena_rules)
 local Wander = require(script.Parent.wander)
 local LightingMatrix = require(script.Parent.lighting)
+local Sky = require(script.Parent.sky)
 local Wiring = require(script.Parent.wiring)
 local LINES = require(script.Parent.data.noob_lines)
 
@@ -218,19 +219,32 @@ local MATERIAL_SCAN_EVERY = 5
 local envAccum, materialAccum = 0, MATERIAL_SCAN_EVERY
 local surfaceOn = {}          -- [part] = the surface id whose value is already written on it
 
-local function readSky()
-    return Wiring.skyFrom(function(key)
+-- The place's sky: a CLOCK (seeded from SHANKPIT_minutes, default noon), a WEATHER (SHANKPIT_weather), and the
+-- shared sky rules deciding the rest. MINUTES_PER_SECOND is host pacing -- how long a day lasts is a design choice,
+-- so it lives here and not in PARENA.
+local MINUTES_PER_SECOND = 1
+local skyState = Sky.new(workspace:GetAttribute("SHANKPIT_minutes") or 720,
+                         workspace:GetAttribute("SHANKPIT_weather") or Sky.CLEAR)
+
+local function publishedWeather()
+    return Wiring.publishedSky(function(key)
         local v = workspace:GetAttribute("SHANKPIT_" .. key)
         if v == nil then v = LightingSvc:GetAttribute("SHANKPIT_" .. key) end
         return v
     end)
 end
 
-local function wireEnvironment()
-    local scene = LightingMatrix.scene(readSky())
-    Wiring.applyPlan(Wiring.lightPlan(scene, STUD_PER_UNIT), LightingSvc, function(rgb)
+local function wireEnvironment(dt)
+    Sky.advance(skyState, (dt or 0) * MINUTES_PER_SECOND, (dt or 0) * 60)
+    -- The clock+weather model fills every field; a place that explicitly published one overrides just that field.
+    local sky = Wiring.mergeSky(Sky.inputs(skyState, Wiring.SKY_DEFAULTS.ambient_level), publishedWeather())
+    local scene = LightingMatrix.scene(sky)
+    local plan = Wiring.lightPlan(scene, STUD_PER_UNIT, Sky.sun(skyState))
+    Wiring.applyPlan(plan, LightingSvc, function(rgb)
         return Color3.new(rgb[1], rgb[2], rgb[3])
     end)
+    -- The sun also moves the actual sun: 23.83 hours means dusk to Roblox, and the rules decide what that is.
+    LightingSvc.ClockTime = Sky.clockHours(skyState)
     return scene
 end
 
@@ -255,7 +269,7 @@ local function wireMaterials()
     end
 end
 
-wireEnvironment()
+wireEnvironment(0)
 wireMaterials()
 
 -- Spawn up to MAX_NOOBS, topping up as they die (the original script's loop, minus the 0.1s hammering)
@@ -264,7 +278,7 @@ RunService.Heartbeat:Connect(function(dt)
     envAccum += dt
     if envAccum >= ENV_EVERY then
         envAccum = 0
-        wireEnvironment()
+        wireEnvironment(dt)
     end
     materialAccum += dt
     if materialAccum >= MATERIAL_SCAN_EVERY then
