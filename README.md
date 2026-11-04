@@ -35,6 +35,8 @@ lua tests/deadweight_ladder_test.lua   # the ladder, script and all (107)
 lua tests/deadweight_board_test.lua    # the per-server leaderboard + its Elo (65)
 lua tests/deadweight_room_test.lua     # the table: seats, offers, one prompt (55)
 lua tests/deadweight_tournament_test.lua  # the esports stage: seeding, byes, champion (56)
+lua tests/cozy_test.lua                # kicking a dandelion, hugging a tree (137, 103 parity rows)
+lua tests/props_test.lua               # the street's props and what a press on one does (109)
 ```
 
 In Roblox: put `src/noobtopia.lua` in `ServerScriptService`, `src/ambient.lua`, `src/big_o_witness.lua` and
@@ -69,6 +71,8 @@ The host warns in the output if the RemoteEvent is missing, so the gap announces
 | `src/ambient.lua` | data-facing helpers (grouping, speak); decisions delegated to PARENA |
 | `src/wander.lua` | where a noob drifts, and when; same integer integration SHANKPIT's C host runs |
 | `src/big_o_witness.lua` | BIG_O's witness/decorum rule, pure |
+| `src/cozy.lua` | kicking a dandelion / hugging a tree: the host's two timestamps and day count, nothing else |
+| `src/props.lua` | the street's props, the reference trunk, and what a press on a prop does (refusals included) |
 | `src/generated/*.lua` | **generated** from PARENA — never edit by hand |
 | `src/generated/deadweight_rules.lua` | DEADWEIGHT's 105-card rules, emitted from `PARENA/stdlib/deadweight/card_rules.prn` |
 | `src/generated/deadweight_policy.lua` | the citizen policy (win rate, the answer to a meta, deck crafting) |
@@ -118,18 +122,27 @@ matrix's legibility floor still governs indoor light, so night is dark outside w
 A place that publishes `SHANKPIT_cover`/`_rain`/... overrides just that field; `wiring.mergeSky` is what keeps a
 reading and a default distinguishable.
 
-**And two cosy verbs** (same day): `src/cozy.lua` lets a noob kick a dandelion (by day, off cooldown, 3–6 seeds
-from its own seed, +60 comfort) and hug a tree (trunk thick enough, 8 s cooldown, +120 comfort, worth less each
-time in one day and reset by morning). The numbers are `cozy_rules.prn`'s; the two cooldown timestamps and the
-day count are the host's. Neither verb can hurt anything. There is no interaction prompt yet — see the honest status
-below — because the repo has no dandelion or tree art to tag.
+**And two cosy verbs, with props to perform them on** (same day): `src/cozy.lua` lets you kick a dandelion (by day,
+off cooldown, 3–6 seeds from your own seed, +60 comfort) and hug a tree (trunk thick enough, 8 s cooldown, +120
+comfort, worth less each time in one day and reset by morning). The numbers are `cozy_rules.prn`'s; the two
+cooldown timestamps and the day count are the host's. Neither verb can hurt anything.
+
+**The props are built, not authored** (2026-11-04, correcting the earlier "no prompt yet"): the repo still ships no
+dandelion or tree art, so rather than tag art nobody has, `src/noobtopia.lua` builds a street of six props from
+`src/props.lua`'s data — three dandelions (stem + glowing head) and three trees (trunk + canopy), each with a
+`ProximityPrompt` (`Kick` / `Hug`). A trigger asks `Props.interact` with your own per-player comfort state, the
+clock and the sky's latest sun reading; the answer becomes a sentence over your head, seed puffs from a kick and a
+leaning tree from a hug, and the comfort reached is republished as a `Cozy` attribute so a HUD has something to read.
+One of the trees is a **sapling** on purpose: a trunk under 400 permille is a refusal the rules own, and a street of
+only huggable trees would hide the rule. The words for a refusal (`closed` / `wait` / `thin`) live in `props.lua`,
+next to the decision — a press that silently does nothing teaches a player not to press.
 
 Still unverified: **none of this has run in a place.** No Studio here, and `src/noobtopia.lua` is Luau (it uses
 `+=`), so it cannot even be syntax-checked on this box -- the numbers and the assignment decisions are tested, the
 assignment itself is not.
 
-Placement: `src/wiring.lua`, `src/lighting.lua` and `src/material.lua` go beside `src/noobtopia.lua`, with the
-generated modules under `src/generated/`.
+Placement: `src/wiring.lua`, `src/lighting.lua`, `src/material.lua`, `src/sky.lua`, `src/cozy.lua` and `src/props.lua`
+go beside `src/noobtopia.lua`, with the generated modules under `src/generated/`.
 
 ## DEADWEIGHT (2026-11-03)
 
@@ -185,6 +198,8 @@ schema WOTAN reads, and drawing the match itself on the table.
 | `data/noob_lines.lua` | the words. **Source of truth** for every line, in both worlds |
 | `tests/ambient_test.lua` | plain-Lua test of the rules, the data and the witness rule |
 | `tests/walk_test.lua` | plain-Lua test of the walk rule against the shared `walk_parity.txt` vectors |
+| `tests/cozy_test.lua` | the two cosy verbs against `cozy_parity.txt` — the same 103 rows SHANKPIT's C asserts |
+| `tests/props_test.lua` | the street: trunk measurement, both verbs, and refusals that change nothing |
 | `noobtopia.lua`, `_.js`, `package.json` | the original single-file script and its JS stub, kept for the record |
 
 ## Regenerating

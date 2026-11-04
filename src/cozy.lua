@@ -74,10 +74,20 @@ local function cooldownLeft(now_ms, last_ms, ready, started)
     return ready - elapsed
 end
 
+-- The same arithmetic, published. A host that wants to SAY why a verb was refused ("not again yet" rather than a
+-- silent nothing) would otherwise have to re-derive the cooldown and drift from this one.
+function Cozy.kickCooldownLeft(state, now_ms)
+    return cooldownLeft(int(now_ms, 0), state.last_kick_ms, Cozy.KICK_COOLDOWN_MS, state.started)
+end
+
+function Cozy.hugCooldownLeft(state, now_ms)
+    return cooldownLeft(int(now_ms, 0), state.last_hug_ms, Cozy.HUG_COOLDOWN_MS, state.started)
+end
+
 -- Kick a dandelion. Returns how many seeds came off (3..6), or 0 when the world said no: night, not a dandelion,
 -- or still on cooldown. The seeds are deterministic in the noob's own seed, so the same noob gets the same puff.
 function Cozy.kick(state, is_dandelion, now_ms, sun_permille)
-    local left = cooldownLeft(int(now_ms, 0), state.last_kick_ms, Cozy.KICK_COOLDOWN_MS, state.started)
+    local left = Cozy.kickCooldownLeft(state, now_ms)
     if Cozy.kickAllowed(int(is_dandelion, 0), left, int(sun_permille, 0)) ~= 1 then return 0 end
     local puffs = Cozy.kickPuffs(state.seed)
     state.comfort = clamp(0, 1000, state.comfort + Cozy.KICK_LIFT_MILLI)
@@ -91,7 +101,7 @@ end
 -- Hug a tree. Returns the comfort actually gained, or 0 when refused (a trunk too thin to reach around, or still
 -- on cooldown). Worth less each time in one day, so the fifth hug of the afternoon is a quieter thing.
 function Cozy.hug(state, trunk_milli, now_ms)
-    local left = cooldownLeft(int(now_ms, 0), state.last_hug_ms, Cozy.HUG_COOLDOWN_MS, state.started)
+    local left = Cozy.hugCooldownLeft(state, now_ms)
     if Cozy.hugAllowed(int(trunk_milli, 0), left) ~= 1 then return 0 end
     local gain = math.floor((Cozy.HUG_COMFORT_MILLI * Cozy.hugDiminish(state.hugs_today)) / 1000)
     state.comfort = clamp(0, 1000, state.comfort + gain)

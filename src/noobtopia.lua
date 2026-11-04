@@ -32,6 +32,8 @@ local Wander = require(script.Parent.wander)
 local LightingMatrix = require(script.Parent.lighting)
 local Sky = require(script.Parent.sky)
 local Wiring = require(script.Parent.wiring)
+local Cozy = require(script.Parent.cozy)
+local Props = require(script.Parent.props)
 local LINES = require(script.Parent.data.noob_lines)
 
 -- Surface ids, matching PARENA/stdlib/noobtopia/arena_rules.prn:
@@ -226,6 +228,10 @@ local MINUTES_PER_SECOND = 1
 local skyState = Sky.new(workspace:GetAttribute("SHANKPIT_minutes") or 720,
                          workspace:GetAttribute("SHANKPIT_weather") or Sky.CLEAR)
 
+-- The sun, as the sky last reported it (permille, 0..1000). The cosy verbs ask whether a dandelion is open, and
+-- that question is the sun's, so the host keeps the latest reading rather than making one up per press.
+local currentSun = 500
+
 local function publishedWeather()
     return Wiring.publishedSky(function(key)
         local v = workspace:GetAttribute("SHANKPIT_" .. key)
@@ -239,6 +245,7 @@ local function wireEnvironment(dt)
     -- The clock+weather model fills every field; a place that explicitly published one overrides just that field.
     local sky = Wiring.mergeSky(Sky.inputs(skyState, Wiring.SKY_DEFAULTS.ambient_level), publishedWeather())
     local scene = LightingMatrix.scene(sky)
+    currentSun = sky.sun or currentSun
     local plan = Wiring.lightPlan(scene, STUD_PER_UNIT, Sky.sun(skyState))
     Wiring.applyPlan(plan, LightingSvc, function(rgb)
         return Color3.new(rgb[1], rgb[2], rgb[3])
@@ -272,6 +279,154 @@ end
 wireEnvironment(0)
 wireMaterials()
 
+-- ---- THE COSY VERBS, REACHABLE --------------------------------------------------------------------
+-- Until this block existed the two verbs were tested and unreachable: nothing in the place was a dandelion a player
+-- could press. `src/props.lua` decides WHAT stands where and what a press means (tested, plain Lua); this block only
+-- builds the parts, hands Roblox the prompt, and shows the result. The rules stay PARENA's
+-- (`stdlib/shankpit/cozy_rules.prn`), the two cooldowns and the day count stay `src/cozy.lua`'s.
+--
+-- The actor is the PLAYER, not a passing noob: a cosy verb is something you do with your hands, and the state is per
+-- player so two players in one server do not share a cooldown. Comfort is republished as a `Cozy` attribute on the
+-- player, so a future HUD has something to read without a second copy of the number living in a GUI.
+local cozyByPlayer = {}
+
+local function cozyFor(player)
+    local state = cozyByPlayer[player]
+    if not state then
+        -- the seed is the UserId: stable across a session, distinct per player, and exactly representable
+        state = Cozy.new(Cozy.IDLE, player.UserId)
+        cozyByPlayer[player] = state
+        player:SetAttribute("Cozy", state.comfort)
+    end
+    return state
+end
+
+local function nowMs()
+    return math.floor(workspace:GetServerTimeNow() * 1000)
+end
+
+local function propPart(name, size, position, colour, shape)
+    local part = Instance.new("Part")
+    part.Name = name
+    part.Anchored = true
+    part.CanCollide = false
+    part.Size = size
+    part.Color = colour
+    part.TopSurface = Enum.SurfaceType.Smooth
+    part.BottomSurface = Enum.SurfaceType.Smooth
+    if shape then part.Shape = shape end
+    part.CFrame = CFrame.new(position)
+    return part
+end
+
+-- A tree leans, then settles. Cosmetic, and kept to the one prop that was pressed so a street of trees is not a
+-- street of windmills.
+local function sway(tree)
+    local canopy, base = tree.canopy, tree.base
+    if not canopy or not base then return end
+    task.spawn(function()
+        for i = 1, 14 do
+            if not canopy.Parent then return end
+            canopy.CFrame = base * CFrame.Angles(math.sin(i * 0.7) * 0.05, 0, math.sin(i * 0.5) * 0.04)
+            task.wait(0.05)
+        end
+        if canopy.Parent then canopy.CFrame = base end
+    end)
+end
+
+-- The seeds that came off, floating up and out. Purely a reading of `amount`, which the rules chose.
+local function puffSeeds(at, count)
+    for _ = 1, count do
+        local seed = propPart("SeedPuff", Vector3.new(0.25, 0.25, 0.25),
+            at + Vector3.new(math.random(-8, 8) / 10, 1.6, math.random(-8, 8) / 10),
+            Color3.fromRGB(250, 240, 170), Enum.PartType.Ball)
+        seed.Material = Enum.Material.Neon
+        seed.Parent = workspace
+        task.spawn(function()
+            for _ = 1, 12 do
+                if not seed.Parent then return end
+                seed.CFrame = seed.CFrame * CFrame.new(0, 0.35, 0) * CFrame.Angles(0.25, 0.35, 0)
+                task.wait(0.08)
+            end
+            seed:Destroy()
+        end)
+    end
+end
+
+-- A sentence over the player's own head. `makeBubble` wants a model with a PrimaryPart, which a character has.
+local function hint(character, text)
+    if not character or not text then return end
+    local root = character.PrimaryPart or character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    character.PrimaryPart = root
+    makeBubble(character, text)
+end
+
+local function buildProps()
+    local folder = Instance.new("Folder")
+    folder.Name = "CosyProps"
+    folder.Parent = workspace
+
+    for _, spec in ipairs(Props.default()) do
+        local d = Props.describe(spec)
+        local base = Vector3.new(d.x, 3, d.z)
+        local model = Instance.new("Model")
+        model.Name = d.id
+        model.Parent = folder
+
+        local anchor, tree = nil, nil
+        if d.kind == "dandelion" then
+            -- a stem and a head: everything a dandelion needs to be kicked
+            local stem = propPart("DandelionStem", Vector3.new(0.18, 1.4, 0.18), base + Vector3.new(0, 0.7, 0),
+                Color3.fromRGB(94, 148, 72))
+            stem.Material = Enum.Material.Grass
+            stem.Parent = model
+            anchor = propPart("DandelionHead", Vector3.new(0.6, 0.6, 0.6), base + Vector3.new(0, 1.5, 0),
+                Color3.fromRGB(250, 232, 118), Enum.PartType.Ball)
+            anchor.Material = Enum.Material.Neon
+            anchor.Parent = model
+            model.PrimaryPart = anchor
+        elseif d.kind == "tree" then
+            local girth = d.trunk_studs
+            anchor = propPart("TreeTrunk", Vector3.new(girth, 8, girth), base + Vector3.new(0, 4, 0),
+                Color3.fromRGB(92, 68, 44))
+            anchor.Material = Enum.Material.Wood
+            anchor.Parent = model
+            local canopy = propPart("TreeCanopy", Vector3.new(girth * 3.4, girth * 3, girth * 3.4),
+                base + Vector3.new(0, 9, 0), Color3.fromRGB(58, 110, 54), Enum.PartType.Ball)
+            canopy.Parent = model
+            model.PrimaryPart = anchor
+            tree = { canopy = canopy, base = canopy.CFrame }
+        else
+            warn("NOOBTOPIA: cosy prop " .. tostring(d.id) .. " has an unknown kind " .. tostring(d.kind))
+        end
+
+        if anchor then
+            local prompt = Instance.new("ProximityPrompt")
+            prompt.ActionText = d.action
+            prompt.ObjectText = d.object
+            prompt.HoldDuration = 0
+            prompt.MaxActivationDistance = d.radius
+            prompt.RequiresLineOfSight = false
+            prompt.Parent = anchor
+
+            prompt.Triggered:Connect(function(player)
+                local result = Props.interact(spec, cozyFor(player), nowMs(), currentSun)
+                if result.ok and result.verb == "kick" then puffSeeds(anchor.Position, result.amount) end
+                if result.ok and result.verb == "hug" then sway(tree) end
+                player:SetAttribute("Cozy", result.comfort)
+                hint(player.Character, Props.reply(result))
+            end)
+        end
+    end
+end
+
+buildProps()
+
+Players.PlayerRemoving:Connect(function(player)
+    cozyByPlayer[player] = nil
+end)
+
 -- Spawn up to MAX_NOOBS, topping up as they die (the original script's loop, minus the 0.1s hammering)
 local spawnAccum = 0
 RunService.Heartbeat:Connect(function(dt)
@@ -279,6 +434,11 @@ RunService.Heartbeat:Connect(function(dt)
     if envAccum >= ENV_EVERY then
         envAccum = 0
         wireEnvironment(dt)
+        -- comfort drifts back toward what the mood wants, a permille per tick of THIS host's 0.25 s: pace is a
+        -- presentation choice, so it is counted here and not in the rules
+        for player, state in pairs(cozyByPlayer) do
+            player:SetAttribute("Cozy", Cozy.tick(state, 1))
+        end
     end
     materialAccum += dt
     if materialAccum >= MATERIAL_SCAN_EVERY then
